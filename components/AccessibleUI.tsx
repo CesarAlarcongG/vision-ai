@@ -1,5 +1,6 @@
 import { colors, radius, spacing } from "@/constants/theme";
 import { useAccessibility } from "@/contexts/AccesibilityContext";
+import { stopSpeaking } from "@/services/speech";
 import { speak } from "expo-speech";
 import { ReactNode, useEffect } from "react";
 import {
@@ -98,11 +99,16 @@ export function VoiceBanner({ text }: VoiceBannerProps) {
   useEffect(() => {
     if (!voiceEnabled) return;
 
+    stopSpeaking();
+
     const timer = setTimeout(() => {
       speak(text);
-    }, 500);
+    }, 300);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      stopSpeaking();
+    };
   }, [text, voiceEnabled]);
 
   return (

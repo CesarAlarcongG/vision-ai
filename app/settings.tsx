@@ -8,6 +8,7 @@ import {
 import { colors, spacing } from "@/constants/theme";
 import { useAccessibility } from "@/contexts/AccesibilityContext";
 import { useRouter } from "expo-router";
+import { speak } from "expo-speech";
 import { useState } from "react";
 import { StyleSheet, Switch, TouchableOpacity, View } from "react-native";
 
@@ -55,7 +56,14 @@ export default function SettingsScreen() {
         <View style={styles.fontControls}>
           <TouchableOpacity
             style={styles.fontButton}
-            onPress={() => setFontScale((prev) => Math.max(0.8, prev - 0.1))}
+            onPress={() => {
+              setFontScale((prev) => {
+                const next = Math.max(0.8, prev - 0.1);
+                if (voiceEnabled)
+                  speak(`Texto al ${Math.round(next * 100)} por ciento`);
+                return next;
+              });
+            }}
             accessibilityLabel="Reducir tamaño de texto"
           >
             <AccessibleText variant="button" bold style={styles.fontButtonText}>
@@ -69,7 +77,14 @@ export default function SettingsScreen() {
 
           <TouchableOpacity
             style={styles.fontButton}
-            onPress={() => setFontScale((prev) => Math.min(1.8, prev + 0.1))}
+            onPress={() => {
+              setFontScale((prev) => {
+                const next = Math.min(1.8, prev + 0.1);
+                if (voiceEnabled)
+                  speak(`Texto al ${Math.round(next * 100)} por ciento`);
+                return next;
+              });
+            }}
             accessibilityLabel="Aumentar tamaño de texto"
           >
             <AccessibleText variant="button" bold style={styles.fontButtonText}>
@@ -90,7 +105,7 @@ export default function SettingsScreen() {
         onValueChange={setSimplifiedMode}
       />
       <SwitchRow
-        label="Activación por voz"
+        label="Narración por voz"
         value={voiceEnabled}
         onValueChange={setVoiceEnabled}
       />
@@ -137,15 +152,24 @@ function SwitchRow({
   value: boolean;
   onValueChange: (value: boolean) => void;
 }) {
+  const { voiceEnabled } = useAccessibility();
+
+  const handleChange = (newValue: boolean) => {
+    if (voiceEnabled) {
+      speak(`${label} ${newValue ? "activado" : "desactivado"}`);
+    }
+    onValueChange(newValue);
+  };
+
   return (
     <Card style={styles.rowCard}>
       <AccessibleText variant="body" bold style={styles.rowLabel}>
         {label}
       </AccessibleText>
       <Switch
-        accessibilityLabel={label}
         value={value}
-        onValueChange={onValueChange}
+        onValueChange={handleChange}
+        accessibilityLabel={label}
       />
     </Card>
   );
