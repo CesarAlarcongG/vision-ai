@@ -1,6 +1,7 @@
 import { colors, radius, spacing } from "@/constants/theme";
 import { useAccessibility } from "@/contexts/AccesibilityContext";
-import { ReactNode } from "react";
+import { speak } from "expo-speech";
+import { ReactNode, useEffect } from "react";
 import {
   Pressable,
   ScrollView,
@@ -11,6 +12,7 @@ import {
   ViewStyle,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import AccessibleText from "./AccessibleText";
 
 type AppScreenProps = {
   children: ReactNode;
@@ -86,20 +88,33 @@ export function AccessibleButton({
   );
 }
 
-export function VoiceBanner({ text }: { text: string }) {
-  const { fontScale } = useAccessibility();
+type VoiceBannerProps = {
+  text: string;
+};
+
+export function VoiceBanner({ text }: VoiceBannerProps) {
+  const { voiceEnabled } = useAccessibility();
+
+  useEffect(() => {
+    if (!voiceEnabled) return;
+
+    const timer = setTimeout(() => {
+      speak(text);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [text, voiceEnabled]);
 
   return (
     <View
       accessible
       accessibilityRole="text"
-      accessibilityLabel={`Mensaje de voz: ${text}`}
-      style={styles.voiceBanner}
+      accessibilityLabel={text}
+      style={styles.container}
     >
-      <Text style={[styles.voiceIcon, { fontSize: 18 * fontScale }]}>◉</Text>
-      <Text style={[styles.voiceText, { fontSize: 15 * fontScale }]}>
-        {text}
-      </Text>
+      <AccessibleText variant="body" bold>
+        🔊 {text}
+      </AccessibleText>
     </View>
   );
 }
@@ -255,5 +270,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     padding: spacing.lg,
+  },
+  container: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 18,
+    padding: spacing.md,
   },
 });
