@@ -1,6 +1,6 @@
 import AccessibleText from "@/components/AccessibleText";
 import { useRouter } from "expo-router";
-import { Alert, Pressable, StyleSheet, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import {
   AccessibleButton,
   AppScreen,
@@ -33,9 +33,7 @@ export default function HomeScreen() {
         }
       >
         <Card style={styles.mainCard}>
-          <AccessibleText centered style={styles.cameraIcon}>
-            📷
-          </AccessibleText>
+          <Text style={styles.cameraIcon}>📷</Text>
           <AccessibleText variant="title" bold centered>
             Escanear ahora
           </AccessibleText>
@@ -80,6 +78,8 @@ const styles = StyleSheet.create({
   },
   cameraIcon: {
     fontSize: 74,
+    lineHeight: 90,
+    textAlign: "center",
   },
   row: {
     flexDirection: "row",

@@ -9,7 +9,7 @@ import { colors, spacing } from "@/constants/theme";
 import { useAccessibility } from "@/contexts/AccesibilityContext";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { StyleSheet, Switch, TouchableOpacity } from "react-native";
+import { StyleSheet, Switch, TouchableOpacity, View } from "react-native";
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -46,35 +46,37 @@ export default function SettingsScreen() {
       <OptionRow label="Idioma" value="Español (ES)" />
       <OptionRow label="Velocidad de voz" value="Normal" />
 
-      {/* Control de tamaño de texto: botones + % juntos */}
-      <Card style={styles.rowCard}>
-        <AccessibleText variant="body" bold style={styles.rowLabel}>
+      {/* Control de tamaño de texto */}
+      <Card style={styles.fontCard}>
+        <AccessibleText variant="body" bold>
           Tamaño de texto
         </AccessibleText>
 
-        <TouchableOpacity
-          style={styles.fontButton}
-          onPress={() => setFontScale((prev) => Math.max(0.8, prev - 0.1))}
-          accessibilityLabel="Reducir tamaño de texto"
-        >
-          <AccessibleText variant="button" bold style={styles.fontButtonText}>
-            A-
-          </AccessibleText>
-        </TouchableOpacity>
+        <View style={styles.fontControls}>
+          <TouchableOpacity
+            style={styles.fontButton}
+            onPress={() => setFontScale((prev) => Math.max(0.8, prev - 0.1))}
+            accessibilityLabel="Reducir tamaño de texto"
+          >
+            <AccessibleText variant="button" bold style={styles.fontButtonText}>
+              A-
+            </AccessibleText>
+          </TouchableOpacity>
 
-        <AccessibleText variant="body" bold style={styles.fontValue}>
-          {Math.round(fontScale * 100)}%
-        </AccessibleText>
-
-        <TouchableOpacity
-          style={styles.fontButton}
-          onPress={() => setFontScale((prev) => Math.min(1.8, prev + 0.1))}
-          accessibilityLabel="Aumentar tamaño de texto"
-        >
-          <AccessibleText variant="button" bold style={styles.fontButtonText}>
-            A+
+          <AccessibleText variant="body" bold style={styles.fontValue}>
+            {Math.round(fontScale * 100)}%
           </AccessibleText>
-        </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.fontButton}
+            onPress={() => setFontScale((prev) => Math.min(1.8, prev + 0.1))}
+            accessibilityLabel="Aumentar tamaño de texto"
+          >
+            <AccessibleText variant="button" bold style={styles.fontButtonText}>
+              A+
+            </AccessibleText>
+          </TouchableOpacity>
+        </View>
       </Card>
 
       <SwitchRow
@@ -173,16 +175,24 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   fontButton: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    minWidth: 52,
+    flex: 1,
     alignItems: "center",
+    paddingVertical: spacing.md,
   },
   fontButtonText: {
     color: colors.text,
   },
   fontValue: {
-    minWidth: 52,
+    flex: 1,
     textAlign: "center",
+  },
+  fontCard: {
+    gap: spacing.sm,
+  },
+
+  fontControls: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
 });

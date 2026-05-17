@@ -112,7 +112,6 @@ export function TopBar({
   onSettings?: () => void;
 }) {
   const { fontScale } = useAccessibility();
-  const iconSize = Math.max(52, 52 * fontScale);
 
   return (
     <View style={styles.topBar}>
@@ -121,12 +120,9 @@ export function TopBar({
         accessibilityRole="button"
         accessibilityLabel="Ir al inicio"
         onPress={onHome}
-        style={[
-          styles.iconButton,
-          { width: iconSize, height: iconSize, borderRadius: iconSize / 2 },
-        ]}
+        style={styles.iconButton}
       >
-        <Text style={[styles.iconText, { fontSize: 26 * fontScale }]}>⌂</Text>
+        <Text style={styles.iconText}>⌂</Text>
       </Pressable>
 
       <Text style={[styles.voiceStatus, { fontSize: 16 * fontScale }]}>
@@ -138,12 +134,9 @@ export function TopBar({
         accessibilityRole="button"
         accessibilityLabel="Abrir configuración"
         onPress={onSettings}
-        style={[
-          styles.iconButton,
-          { width: iconSize, height: iconSize, borderRadius: iconSize / 2 },
-        ]}
+        style={styles.iconButton}
       >
-        <Text style={[styles.iconText, { fontSize: 26 * fontScale }]}>⚙</Text>
+        <Text style={styles.iconText}>⚙</Text>
       </Pressable>
     </View>
   );
@@ -176,8 +169,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    flexWrap: "wrap",
-    gap: spacing.sm,
     paddingVertical: spacing.sm,
   },
   iconButton: {
@@ -189,11 +180,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
+    overflow: "hidden",
   },
   iconText: {
     color: colors.text,
     fontSize: 26,
+    lineHeight: 30,
     fontWeight: "700",
+    textAlign: "center",
   },
   voiceStatus: {
     color: colors.text,
