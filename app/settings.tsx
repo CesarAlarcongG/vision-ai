@@ -7,8 +7,8 @@ import {
 } from "@/components/AccessibleUI";
 import { colors, spacing } from "@/constants/theme";
 import { useAccessibility } from "@/contexts/AccesibilityContext";
+import { speak } from "@/services/speech";
 import { useRouter } from "expo-router";
-import { speak } from "expo-speech";
 import { useState } from "react";
 import { StyleSheet, Switch, TouchableOpacity, View } from "react-native";
 
@@ -23,6 +23,9 @@ export default function SettingsScreen() {
     setSimplifiedMode,
     fontScale,
     setFontScale,
+    voiceRate,
+    setVoiceRate,
+    voiceRateValue,
   } = useAccessibility();
 
   const [autoReturn, setAutoReturn] = useState(false);
@@ -45,7 +48,37 @@ export default function SettingsScreen() {
       </AccessibleText>
 
       <OptionRow label="Idioma" value="Español (ES)" />
-      <OptionRow label="Velocidad de voz" value="Normal" />
+      <Card style={styles.rateCard}>
+        <AccessibleText variant="body" bold>
+          Velocidad de voz
+        </AccessibleText>
+        <View style={styles.rateControls}>
+          {(["slow", "normal", "fast"] as const).map((rate) => {
+            const labels = { slow: "Lenta", normal: "Normal", fast: "Rápida" };
+            const isActive = voiceRate === rate;
+            return (
+              <TouchableOpacity
+                key={rate}
+                style={[styles.rateButton, isActive && styles.rateButtonActive]}
+                onPress={() => {
+                  setVoiceRate(rate);
+                  if (voiceEnabled)
+                    speak(`Velocidad ${labels[rate]}`, voiceRateValue);
+                }}
+                accessibilityLabel={`Velocidad ${labels[rate]}`}
+              >
+                <AccessibleText
+                  variant="small"
+                  bold
+                  style={isActive ? styles.rateTextActive : styles.rateText}
+                >
+                  {labels[rate]}
+                </AccessibleText>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </Card>
 
       {/* Control de tamaño de texto */}
       <Card style={styles.fontCard}>
@@ -60,7 +93,10 @@ export default function SettingsScreen() {
               setFontScale((prev) => {
                 const next = Math.max(0.8, prev - 0.1);
                 if (voiceEnabled)
-                  speak(`Texto al ${Math.round(next * 100)} por ciento`);
+                  speak(
+                    `Texto al ${Math.round(next * 100)} por ciento`,
+                    voiceRateValue
+                  );
                 return next;
               });
             }}
@@ -81,7 +117,10 @@ export default function SettingsScreen() {
               setFontScale((prev) => {
                 const next = Math.min(1.8, prev + 0.1);
                 if (voiceEnabled)
-                  speak(`Texto al ${Math.round(next * 100)} por ciento`);
+                  speak(
+                    `Texto al ${Math.round(next * 100)} por ciento`,
+                    voiceRateValue
+                  );
                 return next;
               });
             }}
@@ -152,11 +191,14 @@ function SwitchRow({
   value: boolean;
   onValueChange: (value: boolean) => void;
 }) {
-  const { voiceEnabled } = useAccessibility();
+  const { voiceEnabled, voiceRateValue } = useAccessibility();
 
   const handleChange = (newValue: boolean) => {
     if (voiceEnabled) {
-      speak(`${label} ${newValue ? "activado" : "desactivado"}`);
+      speak(
+        `${label} ${newValue ? "activado" : "desactivado"}`,
+        voiceRateValue
+      );
     }
     onValueChange(newValue);
   };
@@ -218,5 +260,31 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+  },
+  rateCard: {
+    gap: spacing.sm,
+  },
+  rateControls: {
+    flexDirection: "row",
+    gap: spacing.sm,
+  },
+  rateButton: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    alignItems: "center",
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  rateButtonActive: {
+    backgroundColor: colors.text,
+    borderColor: colors.text,
+  },
+  rateText: {
+    color: colors.text,
+  },
+  rateTextActive: {
+    color: colors.darkText,
   },
 });

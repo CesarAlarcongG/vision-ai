@@ -1,7 +1,6 @@
 import { colors, radius, spacing } from "@/constants/theme";
 import { useAccessibility } from "@/contexts/AccesibilityContext";
-import { stopSpeaking } from "@/services/speech";
-import { speak } from "expo-speech";
+import { speak, stopSpeaking } from "@/services/speech";
 import { ReactNode, useEffect } from "react";
 import {
   Pressable,
@@ -94,7 +93,7 @@ type VoiceBannerProps = {
 };
 
 export function VoiceBanner({ text }: VoiceBannerProps) {
-  const { voiceEnabled } = useAccessibility();
+  const { voiceEnabled, voiceRateValue } = useAccessibility();
 
   useEffect(() => {
     if (!voiceEnabled) return;
@@ -102,7 +101,7 @@ export function VoiceBanner({ text }: VoiceBannerProps) {
     stopSpeaking();
 
     const timer = setTimeout(() => {
-      speak(text);
+      speak(text, voiceRateValue);
     }, 300);
 
     return () => {
