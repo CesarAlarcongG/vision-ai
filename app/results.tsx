@@ -1,13 +1,14 @@
+import AccessibleText from "@/components/AccessibleText";
 import {
-    AccessibleButton,
-    AppScreen,
-    Card,
-    TopBar,
-    VoiceBanner,
+  AccessibleButton,
+  AppScreen,
+  Card,
+  TopBar,
+  VoiceBanner,
 } from "@/components/AccessibleUI";
-import { colors, spacing } from "@/constants/theme";
+import { spacing } from "@/constants/theme";
 import { useRouter } from "expo-router";
-import { Alert, StyleSheet, Text, View } from "react-native";
+import { Alert, StyleSheet, View } from "react-native";
 
 export default function ResultsScreen() {
   const router = useRouter();
@@ -21,44 +22,49 @@ export default function ResultsScreen() {
 
       <VoiceBanner text="Es una botella de agua sobre una mesa. Hay texto en la etiqueta." />
 
-      <Card>
-        <Text style={styles.label}>RESULTADO INTELIGENTE</Text>
+      <Card style={styles.resultCard}>
+        <AccessibleText variant="caption" muted bold style={styles.label}>
+          RESULTADO INTELIGENTE
+        </AccessibleText>
 
-        <Text style={styles.title}>Botella de agua sobre una mesa</Text>
+        <AccessibleText variant="subtitle" bold>
+          Botella de agua sobre una mesa
+        </AccessibleText>
 
-        <Text style={styles.description}>
+        <AccessibleText variant="body">
           Detecté una botella transparente con etiqueta clara. También hay texto
           legible: Agua natural. El objeto está a una distancia segura y bien
           iluminado.
-        </Text>
+        </AccessibleText>
       </Card>
 
       <View style={styles.grid}>
         <AccessibleButton
           label="Más Detalles"
           variant="secondary"
-          onPress={() => Alert.alert("Más detalles", "Resultado ampliado simulado.")}
+          onPress={() =>
+            Alert.alert("Más detalles", "Resultado ampliado simulado.")
+          }
           style={styles.gridButton}
         />
-
         <AccessibleButton
           label="Repetir"
           variant="secondary"
           onPress={() => Alert.alert("Voz", "Repitiendo resultado por voz.")}
           style={styles.gridButton}
         />
-
         <AccessibleButton
           label="Traducir"
           variant="secondary"
           onPress={() => Alert.alert("Traducir", "Traducción simulada.")}
           style={styles.gridButton}
         />
-
         <AccessibleButton
           label="Guardar"
           variant="secondary"
-          onPress={() => Alert.alert("Guardado", "Resultado guardado en historial.")}
+          onPress={() =>
+            Alert.alert("Guardado", "Resultado guardado en historial.")
+          }
           style={styles.gridButton}
         />
       </View>
@@ -70,14 +76,12 @@ export default function ResultsScreen() {
           onPress={() => router.replace("/camera")}
           style={styles.navButton}
         />
-
         <AccessibleButton
           label="Historial"
           variant="secondary"
           onPress={() => router.push("/history")}
           style={styles.navButton}
         />
-
         <AccessibleButton
           label="Inicio"
           variant="secondary"
@@ -90,24 +94,11 @@ export default function ResultsScreen() {
 }
 
 const styles = StyleSheet.create({
+  resultCard: {
+    gap: spacing.md,
+  },
   label: {
-    color: colors.muted,
-    fontSize: 14,
-    fontWeight: "900",
     letterSpacing: 1,
-    marginBottom: spacing.sm,
-  },
-  title: {
-    color: colors.text,
-    fontSize: 28,
-    lineHeight: 34,
-    fontWeight: "900",
-    marginBottom: spacing.md,
-  },
-  description: {
-    color: colors.text,
-    fontSize: 17,
-    lineHeight: 25,
   },
   grid: {
     flexDirection: "row",
@@ -123,6 +114,5 @@ const styles = StyleSheet.create({
   },
   navButton: {
     flex: 1,
-    minHeight: 72,
   },
 });

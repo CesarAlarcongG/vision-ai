@@ -1,13 +1,14 @@
+import AccessibleText from "@/components/AccessibleText";
 import {
-    AccessibleButton,
-    AppScreen,
-    Card,
-    TopBar,
-    VoiceBanner,
+  AccessibleButton,
+  AppScreen,
+  Card,
+  TopBar,
+  VoiceBanner,
 } from "@/components/AccessibleUI";
 import { colors, spacing } from "@/constants/theme";
 import { useRouter } from "expo-router";
-import { Alert, StyleSheet, Text, View } from "react-native";
+import { Alert, StyleSheet, View } from "react-native";
 
 export default function HistoryScreen() {
   const router = useRouter();
@@ -21,11 +22,13 @@ export default function HistoryScreen() {
 
       <VoiceBanner text="Historial de objetos y textos reconocidos." />
 
-      <Text style={styles.title}>Historial</Text>
+      <AccessibleText variant="title" bold>
+        Historial
+      </AccessibleText>
 
-      <Text style={styles.subtitle}>
+      <AccessibleText variant="body" muted>
         Reproduce por voz elementos reconocidos anteriormente.
-      </Text>
+      </AccessibleText>
 
       <HistoryItem
         type="Objeto"
@@ -46,7 +49,9 @@ export default function HistoryScreen() {
       <AccessibleButton
         label="Eliminar Historial"
         variant="danger"
-        onPress={() => Alert.alert("Historial", "Historial eliminado de forma simulada.")}
+        onPress={() =>
+          Alert.alert("Historial", "Historial eliminado de forma simulada.")
+        }
       />
     </AppScreen>
   );
@@ -66,35 +71,39 @@ function HistoryItem({
   command: string;
 }) {
   return (
-    <Card>
+    <Card style={styles.itemCard}>
       <View style={styles.itemHeader}>
-        <Text style={styles.badge}>{type}</Text>
-        <Text style={styles.time}>{time}</Text>
+        <AccessibleText variant="small" bold style={styles.badge}>
+          {type}
+        </AccessibleText>
+        <AccessibleText variant="small" muted style={styles.time}>
+          {time}
+        </AccessibleText>
       </View>
 
-      <Text style={styles.itemTitle}>{title}</Text>
-      <Text style={styles.description}>{description}</Text>
-      <Text style={styles.command}>{command}</Text>
+      <AccessibleText variant="subtitle" bold>
+        {title}
+      </AccessibleText>
+
+      <AccessibleText variant="body">{description}</AccessibleText>
+
+      <AccessibleText variant="small" muted style={styles.command}>
+        {command}
+      </AccessibleText>
     </Card>
   );
 }
 
 const styles = StyleSheet.create({
-  title: {
-    color: colors.text,
-    fontSize: 32,
-    fontWeight: "900",
-  },
-  subtitle: {
-    color: colors.muted,
-    fontSize: 17,
-    lineHeight: 24,
+  itemCard: {
+    gap: spacing.sm,
   },
   itemHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    gap: spacing.md,
-    marginBottom: spacing.md,
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: spacing.sm,
   },
   badge: {
     color: colors.darkText,
@@ -102,28 +111,12 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
-    fontWeight: "900",
+    overflow: "hidden",
   },
   time: {
-    color: colors.muted,
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  itemTitle: {
-    color: colors.text,
-    fontSize: 22,
-    fontWeight: "900",
-    marginBottom: spacing.sm,
-  },
-  description: {
-    color: colors.text,
-    fontSize: 16,
-    lineHeight: 24,
+    flexShrink: 1,
   },
   command: {
-    color: colors.muted,
-    fontSize: 15,
-    fontWeight: "700",
-    marginTop: spacing.md,
+    marginTop: spacing.sm,
   },
 });

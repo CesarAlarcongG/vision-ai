@@ -1,8 +1,9 @@
+import AccessibleText from "@/components/AccessibleText";
 import {
-    AppScreen,
-    Card,
-    TopBar,
-    VoiceBanner,
+  AppScreen,
+  Card,
+  TopBar,
+  VoiceBanner,
 } from "@/components/AccessibleUI";
 import { colors, spacing } from "@/constants/theme";
 import { useRouter } from "expo-router";
@@ -34,17 +35,21 @@ export default function ProcessingScreen() {
           <Text style={styles.processorIcon}>▦</Text>
         </View>
 
-        <Text style={styles.title}>Procesando Imagen</Text>
+        <AccessibleText variant="subtitle" bold centered>
+          Procesando Imagen
+        </AccessibleText>
 
-        <Text style={styles.subtitle}>
+        <AccessibleText variant="body" muted centered>
           Analizando objetos, texto y nivel de iluminación
-        </Text>
+        </AccessibleText>
 
         <View style={styles.progressOuter}>
           <View style={styles.progressInner} />
         </View>
 
-        <Text style={styles.helper}>Vibración suave continua activa</Text>
+        <AccessibleText variant="small" muted centered>
+          Vibración suave continua activa
+        </AccessibleText>
       </Card>
     </AppScreen>
   );
@@ -70,18 +75,8 @@ const styles = StyleSheet.create({
   processorIcon: {
     color: colors.text,
     fontSize: 72,
+    lineHeight: 84,
     fontWeight: "900",
-  },
-  title: {
-    color: colors.text,
-    fontSize: 30,
-    fontWeight: "900",
-    textAlign: "center",
-  },
-  subtitle: {
-    color: colors.muted,
-    fontSize: 17,
-    lineHeight: 24,
     textAlign: "center",
   },
   progressOuter: {
@@ -95,10 +90,5 @@ const styles = StyleSheet.create({
     width: "58%",
     height: "100%",
     backgroundColor: colors.text,
-  },
-  helper: {
-    color: colors.muted,
-    fontSize: 15,
-    textAlign: "center",
   },
 });

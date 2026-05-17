@@ -1,7 +1,8 @@
+import AccessibleText from "@/components/AccessibleText";
+import { AccessibleButton, AppScreen } from "@/components/AccessibleUI";
+import { colors, spacing } from "@/constants/theme";
 import { useRouter } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
-import { AccessibleButton, AppScreen } from "../components/AccessibleUI";
-import { colors, spacing } from "../constants/theme";
 
 export default function SplashScreen() {
   const router = useRouter();
@@ -18,15 +19,17 @@ export default function SplashScreen() {
           <Text style={styles.logoText}>👁</Text>
         </View>
 
-        <Text style={styles.welcome}>
+        <AccessibleText variant="body" centered>
           Bienvenido. Di iniciar o toca dos veces la pantalla.
-        </Text>
+        </AccessibleText>
 
-        <Text style={styles.title}>Visión IA Accesible</Text>
+        <AccessibleText variant="title" bold centered>
+          Visión IA Accesible
+        </AccessibleText>
 
-        <Text style={styles.subtitle}>
+        <AccessibleText variant="body" muted centered>
           Reconocimiento de objetos y lectura de texto guiado por voz
-        </Text>
+        </AccessibleText>
 
         <AccessibleButton
           label="Doble Toque para Iniciar"
@@ -55,24 +58,6 @@ const styles = StyleSheet.create({
   },
   logoText: {
     fontSize: 58,
-  },
-  welcome: {
-    color: colors.text,
-    fontSize: 18,
-    lineHeight: 26,
-    textAlign: "center",
-  },
-  title: {
-    color: colors.text,
-    fontSize: 34,
-    lineHeight: 40,
-    fontWeight: "900",
-    textAlign: "center",
-  },
-  subtitle: {
-    color: colors.muted,
-    fontSize: 18,
-    lineHeight: 26,
-    textAlign: "center",
+    lineHeight: 70,
   },
 });

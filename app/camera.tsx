@@ -1,13 +1,14 @@
+import AccessibleText from "@/components/AccessibleText";
 import {
-    AccessibleButton,
-    AppScreen,
-    Card,
-    TopBar,
-    VoiceBanner,
+  AccessibleButton,
+  AppScreen,
+  Card,
+  TopBar,
+  VoiceBanner,
 } from "@/components/AccessibleUI";
 import { colors, spacing } from "@/constants/theme";
 import { useRouter } from "expo-router";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 export default function CameraScreen() {
   const router = useRouter();
@@ -22,7 +23,9 @@ export default function CameraScreen() {
       <VoiceBanner text="Objeto casi centrado. Acerca un poco más el objeto." />
 
       <Card style={styles.cameraBox}>
-        <Text style={styles.badge}>Objeto centrado</Text>
+        <AccessibleText variant="small" bold style={styles.badge}>
+          Objeto centrado
+        </AccessibleText>
 
         <View style={styles.target}>
           <View style={styles.circle} />
@@ -31,11 +34,13 @@ export default function CameraScreen() {
         </View>
       </Card>
 
-      <Card>
-        <Text style={styles.helper}>✓ Vibración correcta: encuadre correcto</Text>
-        <Text style={styles.helper}>
+      <Card style={styles.helperCard}>
+        <AccessibleText variant="body" bold>
+          ✓ Vibración correcta: encuadre correcto
+        </AccessibleText>
+        <AccessibleText variant="body" bold>
           ✓ Captura automática cuando la imagen esté estable.
-        </Text>
+        </AccessibleText>
       </Card>
 
       <AccessibleButton
@@ -60,8 +65,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: 999,
-    fontWeight: "900",
     marginBottom: spacing.lg,
+    overflow: "hidden",
   },
   target: {
     flex: 1,
@@ -88,10 +93,7 @@ const styles = StyleSheet.create({
     width: 260,
     backgroundColor: colors.border,
   },
-  helper: {
-    color: colors.text,
-    fontSize: 16,
-    lineHeight: 24,
-    fontWeight: "700",
+  helperCard: {
+    gap: spacing.sm,
   },
 });
