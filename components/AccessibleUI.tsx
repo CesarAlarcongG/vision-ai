@@ -108,6 +108,7 @@ export function VoiceBanner({ text }: VoiceBannerProps) {
       clearTimeout(timer);
       stopSpeaking();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [text, voiceEnabled]);
 
   return (
