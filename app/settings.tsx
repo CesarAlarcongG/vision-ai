@@ -1,17 +1,29 @@
+import AccessibleText from "@/components/AccessibleText";
 import {
-    AppScreen,
-    Card,
-    TopBar,
-    VoiceBanner,
+  AppScreen,
+  Card,
+  TopBar,
+  VoiceBanner,
 } from "@/components/AccessibleUI";
 import { colors, spacing } from "@/constants/theme";
+import { useAccessibility } from "@/contexts/AccesibilityContext";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { StyleSheet, Switch, Text } from "react-native";
+import { StyleSheet, Switch, TouchableOpacity } from "react-native";
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const {
+    voiceEnabled,
+    setVoiceEnabled,
+    highContrast,
+    setHighContrast,
+    simplifiedMode,
+    setSimplifiedMode,
+    fontScale,
+    setFontScale,
+  } = useAccessibility();
+
   const [autoReturn, setAutoReturn] = useState(false);
 
   return (
@@ -23,14 +35,58 @@ export default function SettingsScreen() {
 
       <VoiceBanner text="Configuración accesible. Cada opción se lee automáticamente." />
 
-      <Text style={styles.title}>Configuración accesible</Text>
+      <AccessibleText variant="title" bold>
+        Configuración accesible
+      </AccessibleText>
 
-      <Text style={styles.subtitle}>
+      <AccessibleText variant="body" muted>
         Modo básico recomendado, navegación por voz.
-      </Text>
+      </AccessibleText>
 
       <OptionRow label="Idioma" value="Español (ES)" />
       <OptionRow label="Velocidad de voz" value="Normal" />
+
+      {/* Control de tamaño de texto: botones + % juntos */}
+      <Card style={styles.rowCard}>
+        <AccessibleText variant="body" bold style={styles.rowLabel}>
+          Tamaño de texto
+        </AccessibleText>
+
+        <TouchableOpacity
+          style={styles.fontButton}
+          onPress={() => setFontScale((prev) => Math.max(0.8, prev - 0.1))}
+          accessibilityLabel="Reducir tamaño de texto"
+        >
+          <AccessibleText variant="button" bold style={styles.fontButtonText}>
+            A-
+          </AccessibleText>
+        </TouchableOpacity>
+
+        <AccessibleText variant="body" bold style={styles.fontValue}>
+          {Math.round(fontScale * 100)}%
+        </AccessibleText>
+
+        <TouchableOpacity
+          style={styles.fontButton}
+          onPress={() => setFontScale((prev) => Math.min(1.8, prev + 0.1))}
+          accessibilityLabel="Aumentar tamaño de texto"
+        >
+          <AccessibleText variant="button" bold style={styles.fontButtonText}>
+            A+
+          </AccessibleText>
+        </TouchableOpacity>
+      </Card>
+
+      <SwitchRow
+        label="Alto contraste"
+        value={highContrast}
+        onValueChange={setHighContrast}
+      />
+      <SwitchRow
+        label="Modo simplificado"
+        value={simplifiedMode}
+        onValueChange={setSimplifiedMode}
+      />
       <SwitchRow
         label="Activación por voz"
         value={voiceEnabled}
@@ -41,14 +97,17 @@ export default function SettingsScreen() {
         value={autoReturn}
         onValueChange={setAutoReturn}
       />
+
       <OptionRow label="Sensibilidad de detección" value="Alta" />
 
       <Card style={styles.dualCard}>
-        <Text style={styles.dualTitle}>Modo dual</Text>
-        <Text style={styles.dualText}>
+        <AccessibleText variant="subtitle" bold style={styles.dualTitle}>
+          Modo dual
+        </AccessibleText>
+        <AccessibleText variant="body" style={styles.dualText}>
           Básico activo. El modo avanzado queda disponible para ajustar la
           detección, resumen y lectura extendida.
-        </Text>
+        </AccessibleText>
       </Card>
     </AppScreen>
   );
@@ -57,8 +116,12 @@ export default function SettingsScreen() {
 function OptionRow({ label, value }: { label: string; value: string }) {
   return (
     <Card style={styles.rowCard}>
-      <Text style={styles.rowLabel}>{label}</Text>
-      <Text style={styles.rowValue}>{value}</Text>
+      <AccessibleText variant="body" bold style={styles.rowLabel}>
+        {label}
+      </AccessibleText>
+      <AccessibleText variant="body" muted>
+        {value}
+      </AccessibleText>
     </Card>
   );
 }
@@ -74,7 +137,9 @@ function SwitchRow({
 }) {
   return (
     <Card style={styles.rowCard}>
-      <Text style={styles.rowLabel}>{label}</Text>
+      <AccessibleText variant="body" bold style={styles.rowLabel}>
+        {label}
+      </AccessibleText>
       <Switch
         accessibilityLabel={label}
         value={value}
@@ -85,46 +150,39 @@ function SwitchRow({
 }
 
 const styles = StyleSheet.create({
-  title: {
-    color: colors.text,
-    fontSize: 30,
-    fontWeight: "900",
-  },
-  subtitle: {
-    color: colors.muted,
-    fontSize: 17,
-    lineHeight: 24,
-  },
   rowCard: {
-    minHeight: 74,
     flexDirection: "row",
+    flexWrap: "wrap",
     justifyContent: "space-between",
     alignItems: "center",
+    gap: spacing.sm,
+    paddingVertical: spacing.md,
   },
   rowLabel: {
-    color: colors.text,
-    fontSize: 17,
-    fontWeight: "800",
     flex: 1,
-  },
-  rowValue: {
-    color: colors.muted,
-    fontSize: 16,
-    fontWeight: "700",
   },
   dualCard: {
     backgroundColor: colors.text,
   },
   dualTitle: {
     color: colors.darkText,
-    fontSize: 24,
-    fontWeight: "900",
     marginBottom: spacing.sm,
   },
   dualText: {
     color: colors.darkText,
-    fontSize: 16,
     lineHeight: 24,
-    fontWeight: "700",
+  },
+  fontButton: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    minWidth: 52,
+    alignItems: "center",
+  },
+  fontButtonText: {
+    color: colors.text,
+  },
+  fontValue: {
+    minWidth: 52,
+    textAlign: "center",
   },
 });

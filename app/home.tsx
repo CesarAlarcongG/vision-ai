@@ -1,13 +1,14 @@
+import AccessibleText from "@/components/AccessibleText";
 import { useRouter } from "expo-router";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, StyleSheet, View } from "react-native";
 import {
-    AccessibleButton,
-    AppScreen,
-    Card,
-    TopBar,
-    VoiceBanner,
+  AccessibleButton,
+  AppScreen,
+  Card,
+  TopBar,
+  VoiceBanner,
 } from "../components/AccessibleUI";
-import { colors, spacing } from "../constants/theme";
+import { spacing } from "../constants/theme";
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -32,13 +33,22 @@ export default function HomeScreen() {
         }
       >
         <Card style={styles.mainCard}>
-          <Text style={styles.cameraIcon}>📷</Text>
-          <Text style={styles.title}>Escanear ahora</Text>
-          <Text style={styles.subtitle}>
+          <AccessibleText centered style={styles.cameraIcon}>
+            📷
+          </AccessibleText>
+          <AccessibleText variant="title" bold centered>
+            Escanear ahora
+          </AccessibleText>
+          <AccessibleText variant="body">
             Toda la pantalla funciona como botón principal
-          </Text>
-          <Text style={styles.command}>Di: abrir cámara</Text>
-          <Text style={styles.command}>Mantener: asistente</Text>
+          </AccessibleText>
+          <AccessibleText variant="small" centered bold>
+            Di: abrir cámara
+          </AccessibleText>
+
+          <AccessibleText variant="small" centered bold>
+            Mantener: asistente
+          </AccessibleText>
         </Card>
       </Pressable>
 
@@ -70,24 +80,6 @@ const styles = StyleSheet.create({
   },
   cameraIcon: {
     fontSize: 74,
-  },
-  title: {
-    color: colors.text,
-    fontSize: 32,
-    fontWeight: "900",
-    textAlign: "center",
-  },
-  subtitle: {
-    color: colors.muted,
-    fontSize: 17,
-    lineHeight: 24,
-    textAlign: "center",
-  },
-  command: {
-    color: colors.text,
-    fontSize: 16,
-    fontWeight: "700",
-    textAlign: "center",
   },
   row: {
     flexDirection: "row",

@@ -1,15 +1,16 @@
 import { colors, radius, spacing } from "@/constants/theme";
+import { useAccessibility } from "@/contexts/AccesibilityContext";
 import { ReactNode } from "react";
 import {
-    Pressable,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextStyle,
-    View,
-    ViewStyle,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextStyle,
+  View,
+  ViewStyle,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 type AppScreenProps = {
   children: ReactNode;
@@ -20,7 +21,10 @@ export function AppScreen({ children, scroll = true }: AppScreenProps) {
   if (scroll) {
     return (
       <SafeAreaView style={styles.safe}>
-        <ScrollView contentContainerStyle={styles.content}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+        >
           {children}
         </ScrollView>
       </SafeAreaView>
@@ -51,6 +55,8 @@ export function AccessibleButton({
   style,
   textStyle,
 }: AccessibleButtonProps) {
+  const { fontScale } = useAccessibility();
+
   return (
     <Pressable
       accessible
@@ -70,6 +76,7 @@ export function AccessibleButton({
         style={[
           styles.buttonText,
           variant === "primary" && styles.primaryButtonText,
+          { fontSize: 17 * fontScale },
           textStyle,
         ]}
       >
@@ -80,6 +87,8 @@ export function AccessibleButton({
 }
 
 export function VoiceBanner({ text }: { text: string }) {
+  const { fontScale } = useAccessibility();
+
   return (
     <View
       accessible
@@ -87,8 +96,10 @@ export function VoiceBanner({ text }: { text: string }) {
       accessibilityLabel={`Mensaje de voz: ${text}`}
       style={styles.voiceBanner}
     >
-      <Text style={styles.voiceIcon}>◉</Text>
-      <Text style={styles.voiceText}>{text}</Text>
+      <Text style={[styles.voiceIcon, { fontSize: 18 * fontScale }]}>◉</Text>
+      <Text style={[styles.voiceText, { fontSize: 15 * fontScale }]}>
+        {text}
+      </Text>
     </View>
   );
 }
@@ -100,6 +111,9 @@ export function TopBar({
   onHome?: () => void;
   onSettings?: () => void;
 }) {
+  const { fontScale } = useAccessibility();
+  const iconSize = Math.max(52, 52 * fontScale);
+
   return (
     <View style={styles.topBar}>
       <Pressable
@@ -107,27 +121,41 @@ export function TopBar({
         accessibilityRole="button"
         accessibilityLabel="Ir al inicio"
         onPress={onHome}
-        style={styles.iconButton}
+        style={[
+          styles.iconButton,
+          { width: iconSize, height: iconSize, borderRadius: iconSize / 2 },
+        ]}
       >
-        <Text style={styles.iconText}>⌂</Text>
+        <Text style={[styles.iconText, { fontSize: 26 * fontScale }]}>⌂</Text>
       </Pressable>
 
-      <Text style={styles.voiceStatus}>Voz activa</Text>
+      <Text style={[styles.voiceStatus, { fontSize: 16 * fontScale }]}>
+        Voz activa
+      </Text>
 
       <Pressable
         accessible
         accessibilityRole="button"
         accessibilityLabel="Abrir configuración"
         onPress={onSettings}
-        style={styles.iconButton}
+        style={[
+          styles.iconButton,
+          { width: iconSize, height: iconSize, borderRadius: iconSize / 2 },
+        ]}
       >
-        <Text style={styles.iconText}>⚙</Text>
+        <Text style={[styles.iconText, { fontSize: 26 * fontScale }]}>⚙</Text>
       </Pressable>
     </View>
   );
 }
 
-export function Card({ children, style }: { children: ReactNode; style?: ViewStyle }) {
+export function Card({
+  children,
+  style,
+}: {
+  children: ReactNode;
+  style?: ViewStyle;
+}) {
   return <View style={[styles.card, style]}>{children}</View>;
 }
 
@@ -145,10 +173,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   topBar: {
-    minHeight: 56,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
   },
   iconButton: {
     width: 52,
@@ -169,36 +199,38 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 16,
     fontWeight: "700",
+    flexShrink: 1,
+    textAlign: "center",
   },
   voiceBanner: {
-    minHeight: 64,
     borderRadius: radius.lg,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
     padding: spacing.md,
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start", // ← flex-start para que el ícono no se estire
     gap: spacing.sm,
   },
   voiceIcon: {
     color: colors.text,
     fontSize: 18,
+    lineHeight: 24,
   },
   voiceText: {
     color: colors.text,
     fontSize: 16,
-    lineHeight: 22,
+    lineHeight: 24,
     flex: 1,
+    flexWrap: "wrap",
   },
   button: {
-    minHeight: 64,
     borderRadius: radius.lg,
     backgroundColor: colors.accent,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.lg, // ← padding en vez de minHeight fija
   },
   secondaryButton: {
     backgroundColor: colors.surfaceSoft,
