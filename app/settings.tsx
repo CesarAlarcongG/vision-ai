@@ -7,6 +7,7 @@ import {
 } from "@/components/AccessibleUI";
 import { colors, spacing } from "@/constants/theme";
 import { useAccessibility } from "@/contexts/AccesibilityContext";
+import { lightHaptic } from "@/services/haptics";
 import { speak } from "@/services/speech";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -26,6 +27,8 @@ export default function SettingsScreen() {
     voiceRate,
     setVoiceRate,
     voiceRateValue,
+    hapticsEnabled,
+    setHapticsEnabled,
   } = useAccessibility();
 
   const [autoReturn, setAutoReturn] = useState(false);
@@ -37,7 +40,7 @@ export default function SettingsScreen() {
         onSettings={() => router.replace("/settings")}
       />
 
-      <VoiceBanner text="Configuración accesible. Cada opción se lee automáticamente." />
+      <VoiceBanner text="Configuración accesible." />
 
       <AccessibleText variant="title" bold>
         Configuración accesible
@@ -62,6 +65,7 @@ export default function SettingsScreen() {
                 style={[styles.rateButton, isActive && styles.rateButtonActive]}
                 onPress={() => {
                   setVoiceRate(rate);
+                  if (hapticsEnabled) lightHaptic();
                   if (voiceEnabled)
                     speak(`Velocidad ${labels[rate]}`, voiceRateValue);
                 }}
@@ -90,6 +94,7 @@ export default function SettingsScreen() {
           <TouchableOpacity
             style={styles.fontButton}
             onPress={() => {
+              if (hapticsEnabled) lightHaptic();
               setFontScale((prev) => {
                 const next = Math.max(0.8, prev - 0.1);
                 if (voiceEnabled)
@@ -114,6 +119,7 @@ export default function SettingsScreen() {
           <TouchableOpacity
             style={styles.fontButton}
             onPress={() => {
+              if (hapticsEnabled) lightHaptic();
               setFontScale((prev) => {
                 const next = Math.min(1.8, prev + 0.1);
                 if (voiceEnabled)
@@ -147,6 +153,11 @@ export default function SettingsScreen() {
         label="Narración por voz"
         value={voiceEnabled}
         onValueChange={setVoiceEnabled}
+      />
+      <SwitchRow
+        label="Vibración"
+        value={hapticsEnabled}
+        onValueChange={setHapticsEnabled}
       />
       <SwitchRow
         label="Retorno automático"
@@ -191,9 +202,10 @@ function SwitchRow({
   value: boolean;
   onValueChange: (value: boolean) => void;
 }) {
-  const { voiceEnabled, voiceRateValue } = useAccessibility();
+  const { voiceEnabled, voiceRateValue, hapticsEnabled } = useAccessibility();
 
   const handleChange = (newValue: boolean) => {
+    if (hapticsEnabled) lightHaptic();
     if (voiceEnabled) {
       speak(
         `${label} ${newValue ? "activado" : "desactivado"}`,

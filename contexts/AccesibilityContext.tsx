@@ -30,13 +30,18 @@ type AccessibilityContextType = {
 
   voiceRate: VoiceRate;
   setVoiceRate: (rate: VoiceRate) => void;
-  voiceRateValue: number; // el número real que usa expo-speech
+  voiceRateValue: number;
+
+  hapticsEnabled: boolean;
+  setHapticsEnabled: (value: boolean) => void;
 };
+
 const AccessibilityContext = createContext<
   AccessibilityContextType | undefined
 >(undefined);
 
-const STORAGE_KEY = "accessibility_voice_rate";
+const STORAGE_RATE_KEY = "accessibility_voice_rate";
+const STORAGE_HAPTICS_KEY = "accessibility_haptics";
 
 export function AccessibilityProvider({
   children,
@@ -48,20 +53,28 @@ export function AccessibilityProvider({
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [simplifiedMode, setSimplifiedMode] = useState(false);
   const [voiceRate, setVoiceRateState] = useState<VoiceRate>("normal");
+  const [hapticsEnabled, setHapticsState] = useState(true);
 
-  // Cargar velocidad guardada al iniciar
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY).then((saved) => {
+    AsyncStorage.getItem(STORAGE_RATE_KEY).then((saved) => {
       if (saved === "slow" || saved === "normal" || saved === "fast") {
         setVoiceRateState(saved);
       }
     });
+
+    AsyncStorage.getItem(STORAGE_HAPTICS_KEY).then((saved) => {
+      if (saved !== null) setHapticsState(saved === "true");
+    });
   }, []);
 
-  // Guardar cuando cambia
   const setVoiceRate = (rate: VoiceRate) => {
     setVoiceRateState(rate);
-    AsyncStorage.setItem(STORAGE_KEY, rate);
+    AsyncStorage.setItem(STORAGE_RATE_KEY, rate);
+  };
+
+  const setHapticsEnabled = (value: boolean) => {
+    setHapticsState(value);
+    AsyncStorage.setItem(STORAGE_HAPTICS_KEY, String(value));
   };
 
   const value = useMemo(
@@ -77,8 +90,17 @@ export function AccessibilityProvider({
       voiceRate,
       setVoiceRate,
       voiceRateValue: VOICE_RATE_VALUES[voiceRate],
+      hapticsEnabled,
+      setHapticsEnabled,
     }),
-    [fontScale, highContrast, voiceEnabled, simplifiedMode, voiceRate]
+    [
+      fontScale,
+      highContrast,
+      voiceEnabled,
+      simplifiedMode,
+      voiceRate,
+      hapticsEnabled,
+    ]
   );
 
   return (

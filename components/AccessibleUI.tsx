@@ -1,5 +1,6 @@
 import { colors, radius, spacing } from "@/constants/theme";
 import { useAccessibility } from "@/contexts/AccesibilityContext";
+import { lightHaptic } from "@/services/haptics";
 import { speak, stopSpeaking } from "@/services/speech";
 import { ReactNode, useEffect } from "react";
 import {
@@ -65,7 +66,11 @@ export function AccessibleButton({
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityHint={hint}
-      onPress={onPress}
+      onPress={async () => {
+        await lightHaptic();
+
+        onPress?.();
+      }}
       style={({ pressed }) => [
         styles.button,
         variant === "secondary" && styles.secondaryButton,
@@ -140,7 +145,11 @@ export function TopBar({
         accessible
         accessibilityRole="button"
         accessibilityLabel="Ir al inicio"
-        onPress={onHome}
+        onPress={async () => {
+          await lightHaptic();
+
+          onHome?.();
+        }}
         style={styles.iconButton}
       >
         <Text style={styles.iconText}>⌂</Text>
@@ -154,7 +163,11 @@ export function TopBar({
         accessible
         accessibilityRole="button"
         accessibilityLabel="Abrir configuración"
-        onPress={onSettings}
+        onPress={async () => {
+          await lightHaptic();
+
+          onSettings?.();
+        }}
         style={styles.iconButton}
       >
         <Text style={styles.iconText}>⚙</Text>

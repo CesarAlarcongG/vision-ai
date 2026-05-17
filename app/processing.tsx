@@ -6,6 +6,7 @@ import {
   VoiceBanner,
 } from "@/components/AccessibleUI";
 import { colors, spacing } from "@/constants/theme";
+import { successHaptic } from "@/services/haptics";
 import { useRouter } from "expo-router";
 import { useEffect } from "react";
 import { StyleSheet, Text, View } from "react-native";
@@ -14,7 +15,9 @@ export default function ProcessingScreen() {
   const router = useRouter();
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const timer = setTimeout(async () => {
+      await successHaptic();
+
       router.replace("/results");
     }, 2200);
 
