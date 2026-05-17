@@ -21,9 +21,13 @@ type AppScreenProps = {
 };
 
 export function AppScreen({ children, scroll = true }: AppScreenProps) {
+  const { highContrast } = useAccessibility();
+
+  const bg = highContrast ? "#000000" : colors.background;
+
   if (scroll) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView style={[styles.safe, { backgroundColor: bg }]}>
         <ScrollView
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
@@ -35,7 +39,7 @@ export function AppScreen({ children, scroll = true }: AppScreenProps) {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: bg }]}>
       <View style={[styles.content, styles.full]}>{children}</View>
     </SafeAreaView>
   );
@@ -58,7 +62,12 @@ export function AccessibleButton({
   style,
   textStyle,
 }: AccessibleButtonProps) {
-  const { fontScale } = useAccessibility();
+  const { fontScale, highContrast, hapticsEnabled } = useAccessibility();
+
+  const primaryBg = highContrast ? "#FFFFFF" : colors.accent;
+  const primaryText = highContrast ? "#000000" : colors.darkText;
+  const secondaryBg = highContrast ? "#000000" : colors.surfaceSoft;
+  const secondaryBorder = highContrast ? "#FFFFFF" : colors.border;
 
   return (
     <Pressable
@@ -67,13 +76,17 @@ export function AccessibleButton({
       accessibilityLabel={label}
       accessibilityHint={hint}
       onPress={async () => {
-        await lightHaptic();
-
+        if (hapticsEnabled) await lightHaptic();
         onPress?.();
       }}
       style={({ pressed }) => [
         styles.button,
-        variant === "secondary" && styles.secondaryButton,
+        { backgroundColor: primaryBg },
+        variant === "secondary" && {
+          backgroundColor: secondaryBg,
+          borderWidth: highContrast ? 2 : 1,
+          borderColor: secondaryBorder,
+        },
         variant === "danger" && styles.dangerButton,
         pressed && styles.pressed,
         style,
@@ -82,7 +95,10 @@ export function AccessibleButton({
       <Text
         style={[
           styles.buttonText,
-          variant === "primary" && styles.primaryButtonText,
+          variant === "primary" && { color: primaryText },
+          variant === "secondary" && {
+            color: highContrast ? "#FFFFFF" : colors.text,
+          },
           { fontSize: 17 * fontScale },
           textStyle,
         ]}
@@ -98,7 +114,7 @@ type VoiceBannerProps = {
 };
 
 export function VoiceBanner({ text }: VoiceBannerProps) {
-  const { voiceEnabled, voiceRateValue } = useAccessibility();
+  const { voiceEnabled, voiceRateValue, highContrast } = useAccessibility();
 
   useEffect(() => {
     if (!voiceEnabled) return;
@@ -121,7 +137,14 @@ export function VoiceBanner({ text }: VoiceBannerProps) {
       accessible
       accessibilityRole="text"
       accessibilityLabel={text}
-      style={styles.container}
+      style={[
+        styles.container,
+        highContrast && {
+          backgroundColor: "#000000",
+          borderColor: "#FFFFFF",
+          borderWidth: 2,
+        },
+      ]}
     >
       <AccessibleText variant="body" bold>
         🔊 {text}
@@ -137,7 +160,11 @@ export function TopBar({
   onHome?: () => void;
   onSettings?: () => void;
 }) {
-  const { fontScale } = useAccessibility();
+  const { fontScale, highContrast, hapticsEnabled } = useAccessibility();
+
+  const iconBg = highContrast ? "#000000" : colors.surface;
+  const iconBorder = highContrast ? "#FFFFFF" : colors.border;
+  const iconBorderWidth = highContrast ? 2 : 1;
 
   return (
     <View style={styles.topBar}>
@@ -146,11 +173,17 @@ export function TopBar({
         accessibilityRole="button"
         accessibilityLabel="Ir al inicio"
         onPress={async () => {
-          await lightHaptic();
-
+          if (hapticsEnabled) await lightHaptic();
           onHome?.();
         }}
-        style={styles.iconButton}
+        style={[
+          styles.iconButton,
+          {
+            backgroundColor: iconBg,
+            borderColor: iconBorder,
+            borderWidth: iconBorderWidth,
+          },
+        ]}
       >
         <Text style={styles.iconText}>⌂</Text>
       </Pressable>
@@ -164,11 +197,17 @@ export function TopBar({
         accessibilityRole="button"
         accessibilityLabel="Abrir configuración"
         onPress={async () => {
-          await lightHaptic();
-
+          if (hapticsEnabled) await lightHaptic();
           onSettings?.();
         }}
-        style={styles.iconButton}
+        style={[
+          styles.iconButton,
+          {
+            backgroundColor: iconBg,
+            borderColor: iconBorder,
+            borderWidth: iconBorderWidth,
+          },
+        ]}
       >
         <Text style={styles.iconText}>⚙</Text>
       </Pressable>
@@ -183,7 +222,23 @@ export function Card({
   children: ReactNode;
   style?: ViewStyle;
 }) {
-  return <View style={[styles.card, style]}>{children}</View>;
+  const { highContrast } = useAccessibility();
+
+  return (
+    <View
+      style={[
+        styles.card,
+        highContrast && {
+          backgroundColor: "#000000",
+          borderColor: "#FFFFFF",
+          borderWidth: 2,
+        },
+        style,
+      ]}
+    >
+      {children}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -230,35 +285,13 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     textAlign: "center",
   },
-  voiceBanner: {
-    borderRadius: radius.lg,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
-    flexDirection: "row",
-    alignItems: "flex-start", // ← flex-start para que el ícono no se estire
-    gap: spacing.sm,
-  },
-  voiceIcon: {
-    color: colors.text,
-    fontSize: 18,
-    lineHeight: 24,
-  },
-  voiceText: {
-    color: colors.text,
-    fontSize: 16,
-    lineHeight: 24,
-    flex: 1,
-    flexWrap: "wrap",
-  },
   button: {
     borderRadius: radius.lg,
     backgroundColor: colors.accent,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.lg, // ← padding en vez de minHeight fija
+    paddingVertical: spacing.lg,
   },
   secondaryButton: {
     backgroundColor: colors.surfaceSoft,
