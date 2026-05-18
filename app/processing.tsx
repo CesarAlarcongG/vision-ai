@@ -5,24 +5,34 @@ import {
   TopBar,
   VoiceBanner,
 } from "@/components/AccessibleUI";
+
 import { colors, spacing } from "@/constants/theme";
 import { successHaptic } from "@/services/haptics";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Image, StyleSheet, Text, View } from "react-native";
 
 export default function ProcessingScreen() {
   const router = useRouter();
+
+  const { imageUri } = useLocalSearchParams<{ imageUri?: string }>();
+
+  const safeImageUri = typeof imageUri === "string" ? imageUri : null;
 
   useEffect(() => {
     const timer = setTimeout(async () => {
       await successHaptic();
 
-      router.replace("/results");
+      router.replace({
+        pathname: "/results",
+        params: {
+          imageUri: safeImageUri ?? "",
+        },
+      });
     }, 2200);
 
     return () => clearTimeout(timer);
-  }, [router]);
+  }, [safeImageUri, router]);
 
   return (
     <AppScreen>
@@ -34,9 +44,13 @@ export default function ProcessingScreen() {
       <VoiceBanner text="Procesando imagen. Mantén el teléfono estable." />
 
       <Card style={styles.card}>
+        {safeImageUri && (
+          <Image source={{ uri: safeImageUri }} style={styles.image} />
+        )}
+        {/*
         <View style={styles.processor}>
           <Text style={styles.processorIcon}>▦</Text>
-        </View>
+        </View>*/}
 
         <AccessibleText variant="subtitle" bold centered>
           Procesando Imagen
@@ -66,6 +80,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: spacing.lg,
   },
+
+  image: {
+    width: 200,
+    height: 200,
+    borderRadius: 20,
+  },
+
   processor: {
     width: 150,
     height: 150,
@@ -75,6 +96,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+
   processorIcon: {
     color: colors.text,
     fontSize: 72,
@@ -82,6 +104,7 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     textAlign: "center",
   },
+
   progressOuter: {
     width: "90%",
     height: 12,
@@ -89,6 +112,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.border,
     overflow: "hidden",
   },
+
   progressInner: {
     width: "58%",
     height: "100%",

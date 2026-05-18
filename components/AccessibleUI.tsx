@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AccessibleText from "./AccessibleText";
+import { router, useRouter } from "expo-router";
 
 type AppScreenProps = {
   children: ReactNode;
@@ -21,6 +22,7 @@ type AppScreenProps = {
 };
 
 export function AppScreen({ children, scroll = true }: AppScreenProps) {
+  const router = useRouter();
   const { highContrast } = useAccessibility();
 
   const bg = highContrast ? "#000000" : colors.background;
@@ -188,7 +190,14 @@ export function TopBar({
         <Text style={styles.iconText}>⌂</Text>
       </Pressable>
 
-      <Text style={[styles.voiceStatus, { fontSize: 16 * fontScale }]}>
+      <Text
+        style={[styles.voiceStatus, { fontSize: 16 * fontScale }]}
+        onPress={async () => {
+          if (hapticsEnabled) await lightHaptic();
+
+          router.push("/VoiceScreem");
+        }}
+      >
         Voz activa
       </Text>
 
