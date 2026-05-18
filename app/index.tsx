@@ -12,10 +12,13 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export default function SplashScreen() {
   const router = useRouter();
-  const { voiceRateValue } = useAccessibility();
+  const { voiceEnabled, voiceRateValue } = useAccessibility();
 
   const handleStart = () => {
-    speak("Abriendo pantalla principal", voiceRateValue);
+    if (voiceEnabled) {
+      speak("Abriendo pantalla principal", voiceRateValue);
+    }
+
     router.replace("/home");
   };
 
