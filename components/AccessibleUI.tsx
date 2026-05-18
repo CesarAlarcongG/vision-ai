@@ -204,7 +204,7 @@ export function TopBar({
         accessibilityHint="Permite decir comandos como abrir cámara, ir al inicio o abrir configuración"
         onPress={async () => {
           if (hapticsEnabled) await lightHaptic();
-          router.push("/VoiceScreem");
+          router.push("/VoiceScreen");
         }}
         style={[
           styles.voiceButton,
