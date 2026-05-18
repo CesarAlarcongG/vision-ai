@@ -7,23 +7,30 @@ import {
   VoiceBanner,
 } from "@/components/AccessibleUI";
 import { colors, spacing } from "@/constants/theme";
-import { useRouter } from "expo-router";
-import { StyleSheet, View } from "react-native";
-
 import { CameraView, useCameraPermissions } from "expo-camera";
+import { useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
+import { Linking, StyleSheet, View } from "react-native";
 
 export default function CameraScreen() {
   const router = useRouter();
   const cameraRef = useRef<CameraView | null>(null);
-
   const [permission, requestPermission] = useCameraPermissions();
 
   useEffect(() => {
-    if (permission && !permission.granted) {
+    if (permission && !permission.granted && permission.canAskAgain) {
       requestPermission();
     }
-  }, [permission]);
+  }, [permission, requestPermission]);
+
+  const handleRequestCameraPermission = () => {
+    if (permission?.canAskAgain === false) {
+      Linking.openSettings();
+      return;
+    }
+
+    requestPermission();
+  };
 
   const takePhoto = async () => {
     try {
@@ -46,7 +53,74 @@ export default function CameraScreen() {
     }
   };
 
-  if (!permission) return <View />;
+  if (!permission) {
+    return (
+      <AppScreen>
+        <TopBar
+          onHome={() => router.replace("/home")}
+          onSettings={() => router.push("/settings")}
+        />
+
+        <VoiceBanner text="Verificando permiso de cámara." />
+
+        <Card style={styles.permissionCard}>
+          <AccessibleText variant="subtitle" bold centered>
+            Verificando cámara
+          </AccessibleText>
+
+          <AccessibleText variant="body" centered>
+            Estamos comprobando si la aplicación puede usar la cámara del
+            dispositivo.
+          </AccessibleText>
+        </Card>
+      </AppScreen>
+    );
+  }
+
+  if (!permission.granted) {
+    const permissionText =
+      permission.canAskAgain === false
+        ? "El permiso de cámara está bloqueado. Abre los ajustes del dispositivo para habilitarlo."
+        : "La aplicación necesita permiso de cámara para reconocer objetos y leer texto.";
+
+    return (
+      <AppScreen>
+        <TopBar
+          onHome={() => router.replace("/home")}
+          onSettings={() => router.push("/settings")}
+        />
+
+        <VoiceBanner text="La cámara está desactivada. Autoriza el permiso para escanear objetos y texto." />
+
+        <Card style={styles.permissionCard}>
+          <AccessibleText variant="subtitle" bold centered>
+            Permiso de cámara requerido
+          </AccessibleText>
+
+          <AccessibleText variant="body" centered>
+            {permissionText}
+          </AccessibleText>
+        </Card>
+
+        <AccessibleButton
+          label={permission.canAskAgain === false ? "Abrir ajustes" : "Permitir cámara"}
+          hint={
+            permission.canAskAgain === false
+              ? "Abre los ajustes del dispositivo para habilitar la cámara"
+              : "Solicita permiso para usar la cámara"
+          }
+          onPress={handleRequestCameraPermission}
+        />
+
+        <AccessibleButton
+          label="Volver al inicio"
+          variant="secondary"
+          hint="Regresa a la pantalla principal"
+          onPress={() => router.replace("/home")}
+        />
+      </AppScreen>
+    );
+  }
 
   return (
     <AppScreen>
@@ -60,12 +134,16 @@ export default function CameraScreen() {
       <Card style={styles.cameraBox}>
         <CameraView ref={cameraRef} style={styles.camera} facing="back" />
 
-        <View style={styles.overlay}>
+        <View style={styles.overlay} pointerEvents="none">
           <AccessibleText variant="small" bold style={styles.badge}>
             Objeto centrado
           </AccessibleText>
 
-          <View style={styles.target}>
+          <View
+            style={styles.target}
+            accessible={false}
+            importantForAccessibility="no-hide-descendants"
+          >
             <View style={styles.circle} />
             <View style={styles.verticalLine} />
             <View style={styles.horizontalLine} />
@@ -77,6 +155,7 @@ export default function CameraScreen() {
         <AccessibleText variant="body" bold>
           ✓ Vibración correcta: encuadre correcto
         </AccessibleText>
+
         <AccessibleText variant="body" bold>
           ✓ Captura automática cuando la imagen esté estable.
         </AccessibleText>
@@ -94,6 +173,9 @@ export default function CameraScreen() {
 const CAMERA_PADDING = spacing.md;
 
 const styles = StyleSheet.create({
+  permissionCard: {
+    gap: spacing.md,
+  },
   cameraBox: {
     minHeight: 410,
     overflow: "hidden",

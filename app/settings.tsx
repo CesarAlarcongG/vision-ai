@@ -62,14 +62,19 @@ export default function SettingsScreen() {
             return (
               <TouchableOpacity
                 key={rate}
+                accessible
+                accessibilityRole="button"
+                accessibilityLabel={`Velocidad ${labels[rate]}`}
+                accessibilityHint={`Selecciona la velocidad de voz ${labels[rate]}`}
+                accessibilityState={{ selected: isActive }}
                 style={[styles.rateButton, isActive && styles.rateButtonActive]}
                 onPress={() => {
                   setVoiceRate(rate);
                   if (hapticsEnabled) lightHaptic();
-                  if (voiceEnabled)
+                  if (voiceEnabled) {
                     speak(`Velocidad ${labels[rate]}`, voiceRateValue);
+                  }
                 }}
-                accessibilityLabel={`Velocidad ${labels[rate]}`}
               >
                 <AccessibleText
                   variant="small"
@@ -92,20 +97,24 @@ export default function SettingsScreen() {
 
         <View style={styles.fontControls}>
           <TouchableOpacity
+            accessible
+            accessibilityRole="button"
+            accessibilityLabel="Reducir tamaño de texto"
+            accessibilityHint="Disminuye el tamaño de letra de la aplicación"
             style={styles.fontButton}
             onPress={() => {
               if (hapticsEnabled) lightHaptic();
               setFontScale((prev) => {
                 const next = Math.max(0.8, prev - 0.1);
-                if (voiceEnabled)
+                if (voiceEnabled) {
                   speak(
                     `Texto al ${Math.round(next * 100)} por ciento`,
                     voiceRateValue
                   );
+                }
                 return next;
               });
             }}
-            accessibilityLabel="Reducir tamaño de texto"
           >
             <AccessibleText variant="button" bold style={styles.fontButtonText}>
               A-
@@ -117,20 +126,24 @@ export default function SettingsScreen() {
           </AccessibleText>
 
           <TouchableOpacity
+            accessible
+            accessibilityRole="button"
+            accessibilityLabel="Aumentar tamaño de texto"
+            accessibilityHint="Incrementa el tamaño de letra de la aplicación"
             style={styles.fontButton}
             onPress={() => {
               if (hapticsEnabled) lightHaptic();
               setFontScale((prev) => {
                 const next = Math.min(1.8, prev + 0.1);
-                if (voiceEnabled)
+                if (voiceEnabled) {
                   speak(
                     `Texto al ${Math.round(next * 100)} por ciento`,
                     voiceRateValue
                   );
+                }
                 return next;
               });
             }}
-            accessibilityLabel="Aumentar tamaño de texto"
           >
             <AccessibleText variant="button" bold style={styles.fontButtonText}>
               A+
@@ -206,12 +219,14 @@ function SwitchRow({
 
   const handleChange = (newValue: boolean) => {
     if (hapticsEnabled) lightHaptic();
+
     if (voiceEnabled) {
       speak(
         `${label} ${newValue ? "activado" : "desactivado"}`,
         voiceRateValue
       );
     }
+
     onValueChange(newValue);
   };
 
@@ -220,10 +235,16 @@ function SwitchRow({
       <AccessibleText variant="body" bold style={styles.rowLabel}>
         {label}
       </AccessibleText>
+
       <Switch
         value={value}
         onValueChange={handleChange}
+        accessibilityRole="switch"
         accessibilityLabel={label}
+        accessibilityState={{ checked: value }}
+        accessibilityHint={`Doble toque para ${
+          value ? "desactivar" : "activar"
+        } ${label}`}
       />
     </Card>
   );
