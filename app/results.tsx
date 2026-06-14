@@ -4,36 +4,26 @@ import {
   AppScreen,
   Card,
   TopBar,
-  VoiceBanner,
 } from "@/components/AccessibleUI";
 import { spacing } from "@/constants/theme";
 import { useAccessibility } from "@/contexts/AccesibilityContext";
 import { speak } from "@/services/speech";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect } from "react";
 import { Alert, StyleSheet, View } from "react-native";
-
-const RESULT_SUMMARY =
-  "Es una botella de agua sobre una mesa. Hay texto en la etiqueta.";
-
-const RESULT_SUMMARY_SIMPLE =
-  "Resultado listo. Detecté una botella de agua.";
-
-const RESULT_TITLE = "Botella de agua sobre una mesa";
-
-const RESULT_DESCRIPTION =
-  "Detecté una botella transparente con etiqueta clara. También hay texto legible: Agua natural. El objeto está a una distancia segura y bien iluminado.";
-
-const RESULT_DESCRIPTION_SIMPLE =
-  "Detecté una botella de agua sobre una mesa. Hay texto en la etiqueta.";
 
 export default function ResultsScreen() {
   const router = useRouter();
+  const { description } = useLocalSearchParams<{
+    description?: string;
+  }>();
   const { voiceEnabled, voiceRateValue, simplifiedMode } = useAccessibility();
+  const aiDescription =
+    typeof description === "string"
+      ? description
+      : "No se pudo analizar la imagen.";
 
-  const visibleSummary = simplifiedMode ? RESULT_SUMMARY_SIMPLE : RESULT_SUMMARY;
-  const visibleDescription = simplifiedMode
-    ? RESULT_DESCRIPTION_SIMPLE
-    : RESULT_DESCRIPTION;
+  const visibleDescription = aiDescription;
 
   const handleRepeatResult = () => {
     if (!voiceEnabled) {
@@ -44,8 +34,14 @@ export default function ResultsScreen() {
       return;
     }
 
-    speak(`${RESULT_TITLE}. ${visibleDescription}`, voiceRateValue);
+    speak(`${visibleDescription}`, voiceRateValue);
   };
+
+  useEffect(() => {
+    if (!voiceEnabled) return;
+
+    speak(aiDescription, voiceRateValue);
+  }, [aiDescription, voiceEnabled, voiceRateValue]);
 
   return (
     <AppScreen>
@@ -53,8 +49,6 @@ export default function ResultsScreen() {
         onHome={() => router.replace("/home")}
         onSettings={() => router.push("/settings")}
       />
-
-      <VoiceBanner text={visibleSummary} />
 
       {simplifiedMode && (
         <Card style={styles.simplifiedNotice}>
@@ -75,7 +69,7 @@ export default function ResultsScreen() {
         )}
 
         <AccessibleText variant="subtitle" bold centered={simplifiedMode}>
-          {RESULT_TITLE}
+          Resultado del análisis
         </AccessibleText>
 
         <AccessibleText variant="body" centered={simplifiedMode}>
@@ -110,65 +104,23 @@ export default function ResultsScreen() {
           />
         </View>
       ) : (
-        <>
-          <View style={styles.grid}>
-            <AccessibleButton
-              label="Más Detalles"
-              variant="secondary"
-              onPress={() =>
-                Alert.alert("Más detalles", "Resultado ampliado simulado.")
-              }
-              style={styles.gridButton}
-            />
+        <View style={styles.simpleActions}>
+          <AccessibleButton
+            label="Repetir"
+            hint="Lee nuevamente el resultado"
+            variant="primary"
+            onPress={handleRepeatResult}
+            style={styles.fullButton}
+          />
 
-            <AccessibleButton
-              label="Repetir"
-              hint="Lee nuevamente el resultado detectado usando voz"
-              variant="secondary"
-              onPress={handleRepeatResult}
-              style={styles.gridButton}
-            />
-
-            <AccessibleButton
-              label="Traducir"
-              variant="secondary"
-              onPress={() => Alert.alert("Traducir", "Traducción simulada.")}
-              style={styles.gridButton}
-            />
-
-            <AccessibleButton
-              label="Guardar"
-              variant="secondary"
-              onPress={() =>
-                Alert.alert("Guardado", "Resultado guardado en historial.")
-              }
-              style={styles.gridButton}
-            />
-          </View>
-
-          <View style={styles.bottomNav}>
-            <AccessibleButton
-              label="Nueva Captura"
-              variant="secondary"
-              onPress={() => router.replace("/camera")}
-              style={styles.navButton}
-            />
-
-            <AccessibleButton
-              label="Historial"
-              variant="secondary"
-              onPress={() => router.push("/history")}
-              style={styles.navButton}
-            />
-
-            <AccessibleButton
-              label="Inicio"
-              variant="secondary"
-              onPress={() => router.replace("/home")}
-              style={styles.navButton}
-            />
-          </View>
-        </>
+          <AccessibleButton
+            label="Nueva Captura"
+            hint="Abre la cámara para analizar otra imagen"
+            variant="secondary"
+            onPress={() => router.replace("/camera")}
+            style={styles.fullButton}
+          />
+        </View>
       )}
     </AppScreen>
   );

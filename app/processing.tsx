@@ -8,9 +8,11 @@ import {
 
 import { colors, spacing } from "@/constants/theme";
 import { successHaptic } from "@/services/haptics";
+import { describeImage } from "@/services/visionAI";
+import * as FileSystem from "expo-file-system/legacy";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect } from "react";
-import { Image, StyleSheet, Text, View } from "react-native";
+import { Image, StyleSheet, View } from "react-native";
 
 export default function ProcessingScreen() {
   const router = useRouter();
@@ -20,18 +22,42 @@ export default function ProcessingScreen() {
   const safeImageUri = typeof imageUri === "string" ? imageUri : null;
 
   useEffect(() => {
-    const timer = setTimeout(async () => {
-      await successHaptic();
+    const processImage = async () => {
+      try {
+        if (!safeImageUri) {
+          router.replace("/results");
+          return;
+        }
 
-      router.replace({
-        pathname: "/results",
-        params: {
-          imageUri: safeImageUri ?? "",
-        },
-      });
-    }, 2200);
+        const base64 = await FileSystem.readAsStringAsync(safeImageUri, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
 
-    return () => clearTimeout(timer);
+        const description = await describeImage(base64);
+
+        await successHaptic();
+
+        router.replace({
+          pathname: "/results",
+          params: {
+            imageUri: safeImageUri,
+            description,
+          },
+        });
+      } catch (error) {
+        console.error("Error procesando imagen:", error);
+
+        router.replace({
+          pathname: "/results",
+          params: {
+            imageUri: safeImageUri ?? "",
+            description: "No se pudo analizar la imagen correctamente.",
+          },
+        });
+      }
+    };
+
+    processImage();
   }, [safeImageUri, router]);
 
   return (

@@ -6,7 +6,7 @@ import {
   TopBar,
   VoiceBanner,
 } from "@/components/AccessibleUI";
-import { colors, spacing } from "@/constants/theme";
+import { spacing } from "@/constants/theme";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
@@ -103,7 +103,11 @@ export default function CameraScreen() {
         </Card>
 
         <AccessibleButton
-          label={permission.canAskAgain === false ? "Abrir ajustes" : "Permitir cámara"}
+          label={
+            permission.canAskAgain === false
+              ? "Abrir ajustes"
+              : "Permitir cámara"
+          }
           hint={
             permission.canAskAgain === false
               ? "Abre los ajustes del dispositivo para habilitar la cámara"
@@ -129,16 +133,12 @@ export default function CameraScreen() {
         onSettings={() => router.push("/settings")}
       />
 
-      <VoiceBanner text="Objeto casi centrado. Acerca un poco más el objeto." />
+      <VoiceBanner text="Cámara lista. Toma una foto para obtener una descripción." />
 
       <Card style={styles.cameraBox}>
         <CameraView ref={cameraRef} style={styles.camera} facing="back" />
 
         <View style={styles.overlay} pointerEvents="none">
-          <AccessibleText variant="small" bold style={styles.badge}>
-            Objeto centrado
-          </AccessibleText>
-
           <View
             style={styles.target}
             accessible={false}
@@ -150,17 +150,9 @@ export default function CameraScreen() {
           </View>
         </View>
       </Card>
-
-      <Card style={styles.helperCard}>
-        <AccessibleText variant="body" bold>
-          ✓ Vibración correcta: encuadre correcto
-        </AccessibleText>
-
-        <AccessibleText variant="body" bold>
-          ✓ Captura automática cuando la imagen esté estable.
-        </AccessibleText>
-      </Card>
-
+      <AccessibleText variant="small" muted centered>
+        Captura una imagen para que la IA la describa por voz.
+      </AccessibleText>
       <AccessibleButton
         label="Tomar foto"
         hint="Captura imagen y envía a procesamiento"
@@ -177,11 +169,12 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   cameraBox: {
-    minHeight: 410,
+    // minHeight: 410,
+    flex: 1,
     overflow: "hidden",
     padding: CAMERA_PADDING,
     position: "relative",
-    justifyContent: "center",
+    // justifyContent: "center",
   },
   camera: {
     flex: 1,
@@ -192,17 +185,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: CAMERA_PADDING,
-  },
-  badge: {
-    position: "absolute",
-    top: 30,
-    left: 30,
-    color: colors.darkText,
-    backgroundColor: colors.text,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: 999,
-    overflow: "hidden",
   },
   target: {
     flex: 1,
@@ -228,8 +210,5 @@ const styles = StyleSheet.create({
     height: 2,
     width: 260,
     backgroundColor: "#fff",
-  },
-  helperCard: {
-    gap: spacing.sm,
   },
 });
