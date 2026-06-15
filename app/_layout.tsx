@@ -1,21 +1,22 @@
+// app/_layout.tsx
+
 import { AccessibilityProvider } from "@/contexts/AccesibilityContext";
+import { VoiceAssistantProvider } from "@/contexts/VoiceAssistantContext";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 
 export default function RootLayout() {
   return (
     <AccessibilityProvider>
-      <>
-        <StatusBar style="light" />
+      <VoiceAssistantProvider>
         <Stack
           screenOptions={{
             headerShown: false,
-            contentStyle: {
-              backgroundColor: "#050505",
-            },
           }}
         />
-      </>
+
+        <StatusBar style="light" />
+      </VoiceAssistantProvider>
     </AccessibilityProvider>
   );
 }

@@ -1,8 +1,9 @@
 import { colors, radius, spacing } from "@/constants/theme";
 import { useAccessibility } from "@/contexts/AccesibilityContext";
+import { useVoiceAssistant } from "@/contexts/VoiceAssistantContext";
 import { lightHaptic } from "@/services/haptics";
 import { speak, stopSpeaking } from "@/services/speech";
-import { router, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { ReactNode, useEffect } from "react";
 import {
   Pressable,
@@ -117,9 +118,14 @@ type VoiceBannerProps = {
 
 export function VoiceBanner({ text }: VoiceBannerProps) {
   const { voiceEnabled, voiceRateValue, highContrast } = useAccessibility();
+  const { isVoiceAssistantActive } = useVoiceAssistant();
 
   useEffect(() => {
-    if (!voiceEnabled) return;
+    // Mientras el asistente está activo, no reproducimos
+    // automáticamente los banners de cada pantalla.
+    if (!voiceEnabled || isVoiceAssistantActive) {
+      return;
+    }
 
     stopSpeaking();
 
@@ -131,8 +137,12 @@ export function VoiceBanner({ text }: VoiceBannerProps) {
       clearTimeout(timer);
       stopSpeaking();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [text, voiceEnabled]);
+  }, [
+    text,
+    voiceEnabled,
+    voiceRateValue,
+    isVoiceAssistantActive,
+  ]);
 
   return (
     <View
@@ -162,11 +172,33 @@ export function TopBar({
   onHome?: () => void;
   onSettings?: () => void;
 }) {
-  const { fontScale, highContrast, hapticsEnabled } = useAccessibility();
+  const {
+    fontScale,
+    highContrast,
+    hapticsEnabled,
+  } = useAccessibility();
 
-  const iconBg = highContrast ? "#000000" : colors.surface;
-  const iconBorder = highContrast ? "#FFFFFF" : colors.border;
+  const {
+    isVoiceAssistantActive,
+    isListening,
+    toggleVoiceAssistant,
+  } = useVoiceAssistant();
+
+  const iconBg = highContrast
+    ? "#000000"
+    : colors.surface;
+
+  const iconBorder = highContrast
+    ? "#FFFFFF"
+    : colors.border;
+
   const iconBorderWidth = highContrast ? 2 : 1;
+
+  const voiceButtonText = isListening
+    ? "Escuchando..."
+    : isVoiceAssistantActive
+      ? "Desactivar voz"
+      : "Activar voz";
 
   return (
     <View style={styles.topBar}>
@@ -174,9 +206,12 @@ export function TopBar({
         accessible
         accessibilityRole="button"
         accessibilityLabel="Ir al inicio"
-        accessibilityHint="Regresa a la pantalla principal"
+        accessibilityHint="Abre la pantalla principal"
         onPress={async () => {
-          if (hapticsEnabled) await lightHaptic();
+          if (hapticsEnabled) {
+            await lightHaptic();
+          }
+
           onHome?.();
         }}
         style={[
@@ -188,23 +223,28 @@ export function TopBar({
           },
         ]}
       >
-        <Text
-          accessible={false}
-          importantForAccessibility="no"
-          style={styles.iconText}
-        >
-          ⌂
-        </Text>
+        <Text style={styles.iconText}>⌂</Text>
       </Pressable>
 
       <Pressable
         accessible
         accessibilityRole="button"
-        accessibilityLabel="Abrir comandos de voz"
-        accessibilityHint="Permite decir comandos como abrir cámara, ir al inicio o abrir configuración"
+        accessibilityLabel={voiceButtonText}
+        accessibilityHint={
+          isVoiceAssistantActive
+            ? "Desactiva el asistente de voz"
+            : "Activa el asistente para escuchar comandos"
+        }
+        accessibilityState={{
+          selected: isVoiceAssistantActive,
+          busy: isListening,
+        }}
         onPress={async () => {
-          if (hapticsEnabled) await lightHaptic();
-          router.push("/VoiceScreen");
+          if (hapticsEnabled) {
+            await lightHaptic();
+          }
+
+          toggleVoiceAssistant();
         }}
         style={[
           styles.voiceButton,
@@ -215,8 +255,15 @@ export function TopBar({
           },
         ]}
       >
-        <Text style={[styles.voiceStatus, { fontSize: 16 * fontScale }]}>
-          Voz activa
+        <Text
+          style={[
+            styles.voiceStatus,
+            {
+              fontSize: 16 * fontScale,
+            },
+          ]}
+        >
+          {voiceButtonText}
         </Text>
       </Pressable>
 
@@ -224,9 +271,12 @@ export function TopBar({
         accessible
         accessibilityRole="button"
         accessibilityLabel="Abrir configuración"
-        accessibilityHint="Abre las opciones de accesibilidad"
+        accessibilityHint="Permite personalizar la accesibilidad"
         onPress={async () => {
-          if (hapticsEnabled) await lightHaptic();
+          if (hapticsEnabled) {
+            await lightHaptic();
+          }
+
           onSettings?.();
         }}
         style={[
@@ -238,13 +288,7 @@ export function TopBar({
           },
         ]}
       >
-        <Text
-          accessible={false}
-          importantForAccessibility="no"
-          style={styles.iconText}
-        >
-          ⚙
-        </Text>
+        <Text style={styles.iconText}>⚙</Text>
       </Pressable>
     </View>
   );

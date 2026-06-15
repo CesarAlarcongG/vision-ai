@@ -1,4 +1,11 @@
-const API_KEY = "API_URL";
+const API_KEY =
+  process.env.EXPO_PUBLIC_GEMINI_API_KEY;
+
+if (!API_KEY) {
+  throw new Error(
+    "Falta configurar EXPO_PUBLIC_GEMINI_API_KEY"
+  );
+}
 
 export async function describeImage(base64Image: string) {
   const response = await fetch(
@@ -14,13 +21,13 @@ export async function describeImage(base64Image: string) {
             parts: [
               {
                 text: `
-Describe brevemente esta imagen para una persona con discapacidad visual.
-Máximo 2 oraciones.
-Describe únicamente lo más importante.
-Si hay texto visible, menciónalo brevemente.
-No inventes detalles.
-Sé claro y directo
-`,
+                  Describe brevemente esta imagen para una persona con discapacidad visual.
+                  Máximo 2 oraciones.
+                  Describe únicamente lo más importante.
+                  Si hay texto visible, menciónalo brevemente.
+                  No inventes detalles.
+                  Sé claro y directo
+                `,
               },
               {
                 inline_data: {
