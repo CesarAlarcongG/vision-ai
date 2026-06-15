@@ -8,6 +8,10 @@ import {
 } from "@/services/voiceCommandService";
 
 import { router, usePathname } from "expo-router";
+import {
+    ExpoSpeechRecognitionModule,
+    useSpeechRecognitionEvent,
+} from "expo-speech-recognition";
 import React, {
     createContext,
     ReactNode,
@@ -24,567 +28,602 @@ import {
     Text,
     View,
 } from "react-native";
-import { WebView } from "react-native-webview";
 
 type VoiceAssistantContextType = {
-  isVoiceAssistantActive: boolean;
-  isListening: boolean;
-  lastTranscript: string;
-  activateVoiceAssistant: () => void;
-  deactivateVoiceAssistant: (announce?: boolean) => void;
-  toggleVoiceAssistant: () => void;
+    isVoiceAssistantActive: boolean;
+    isListening: boolean;
+    lastTranscript: string;
+    activateVoiceAssistant: () => void;
+    deactivateVoiceAssistant: (announce?: boolean) => void;
+    toggleVoiceAssistant: () => void;
 };
 
 const VoiceAssistantContext =
-  createContext<VoiceAssistantContextType | undefined>(undefined);
+    createContext<VoiceAssistantContextType | undefined>(undefined);
 
-const RECOGNITION_HTML = `
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  />
-</head>
-
-<body>
-<script>
-  const sendMessage = (payload) => {
-    window.ReactNativeWebView.postMessage(JSON.stringify(payload));
-  };
-
-  const SpeechRecognition =
-    window.SpeechRecognition || window.webkitSpeechRecognition;
-
-  if (!SpeechRecognition) {
-    sendMessage({
-      type: "no-support"
-    });
-  } else {
-    const recognition = new SpeechRecognition();
-
-    recognition.lang = "es-PE";
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
-
-    recognition.onstart = () => {
-      sendMessage({
-        type: "status",
-        status: "listening"
-      });
-    };
-
-    recognition.onresult = (event) => {
-      const transcript =
-        event.results?.[0]?.[0]?.transcript ?? "";
-
-      sendMessage({
-        type: "result",
-        text: transcript
-      });
-    };
-
-    recognition.onerror = (event) => {
-      sendMessage({
-        type: "error",
-        error: event.error || "unknown"
-      });
-    };
-
-    try {
-      recognition.start();
-    } catch (error) {
-      sendMessage({
-        type: "error",
-        error: String(error)
-      });
-    }
-  }
-</script>
-</body>
-</html>
-`;
-
-type WebViewMessage =
-  | {
-      type: "status";
-      status: string;
-    }
-  | {
-      type: "result";
-      text: string;
-    }
-  | {
-      type: "error";
-      error: string;
-    }
-  | {
-      type: "no-support";
-    };
 
 export function VoiceAssistantProvider({
-  children,
+    children,
 }: {
-  children: ReactNode;
+    children: ReactNode;
 }) {
-  const pathname = usePathname();
+    const pathname = usePathname();
 
-  const { voiceRateValue } = useAccessibility();
+    const { voiceRateValue } = useAccessibility();
 
-  const [isVoiceAssistantActive, setIsVoiceAssistantActive] =
-    useState(false);
+    const [isVoiceAssistantActive, setIsVoiceAssistantActive] =
+        useState(false);
 
-  const [isListening, setIsListening] = useState(false);
-  const [lastTranscript, setLastTranscript] = useState("");
-  const [recognitionKey, setRecognitionKey] = useState(0);
+    const [isListening, setIsListening] = useState(false);
+    const [lastTranscript, setLastTranscript] = useState("");
 
-  // El ref permite consultar inmediatamente el estado actualizado
-  // dentro de callbacks de Speech y WebView.
-  const activeRef = useRef(false);
+    // El ref permite consultar inmediatamente el estado actualizado
+    // dentro de callbacks de Speech y WebView.
+    const activeRef = useRef(false);
+    const pendingCommandRef = useRef<VoiceCommand | null>(null);
+    const pendingErrorRef = useRef<string | null>(null);
+    const processingFinalResultRef = useRef(false);
 
-  const startListening = useCallback(() => {
-    if (!activeRef.current) return;
+    const startListening = useCallback(async () => {
+        if (!activeRef.current) {
+            console.log("VOICE START CANCELLED: assistant inactive");
+            return;
+        }
 
-    console.log("VOICE STATUS: listening");
+        try {
+            const available =
+                ExpoSpeechRecognitionModule.isRecognitionAvailable();
 
-    setIsListening(false);
-    setRecognitionKey((previous) => previous + 1);
+            console.log("VOICE RECOGNITION AVAILABLE:", available);
 
-    // Da tiempo a desmontar el WebView anterior antes de crear otro.
-    setTimeout(() => {
-      if (activeRef.current) {
-        setIsListening(true);
-      }
-    }, 150);
-  }, []);
-
-  const respondAndContinue = useCallback(
-    (message: string) => {
-      if (!activeRef.current) return;
-
-      setIsListening(false);
-
-      console.log("ASSISTANT RESPONSE:", message);
-
-      speak(message, voiceRateValue, {
-        onDone: () => {
-          setTimeout(() => {
-            if (activeRef.current) {
-              startListening();
+            try {
+                console.log(
+                    "VOICE RECOGNITION SERVICES:",
+                    ExpoSpeechRecognitionModule.getSpeechRecognitionServices()
+                );
+            } catch (serviceError) {
+                console.log(
+                    "VOICE SERVICES CHECK ERROR:",
+                    serviceError
+                );
             }
-          }, 300);
-        },
 
-        onError: (error) => {
-          console.log("ASSISTANT SPEECH ERROR:", error);
+            if (!available) {
+                activeRef.current = false;
+                setIsVoiceAssistantActive(false);
+                setIsListening(false);
 
-          setTimeout(() => {
-            if (activeRef.current) {
-              startListening();
+                speak(
+                    "El reconocimiento de voz no está disponible en este dispositivo.",
+                    voiceRateValue
+                );
+
+                return;
             }
-          }, 300);
+
+            const permission =
+                await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+
+            console.log("VOICE PERMISSION:", permission);
+
+            if (!permission.granted) {
+                activeRef.current = false;
+                setIsVoiceAssistantActive(false);
+                setIsListening(false);
+
+                speak(
+                    "Necesito permiso para utilizar el micrófono.",
+                    voiceRateValue
+                );
+
+                return;
+            }
+
+            pendingCommandRef.current = null;
+            pendingErrorRef.current = null;
+            processingFinalResultRef.current = false;
+
+            console.log("VOICE START REQUESTED");
+
+            ExpoSpeechRecognitionModule.start({
+                lang: "es-PE",
+                interimResults: true,
+                continuous: false,
+                maxAlternatives: 3,
+
+                // Mejora la respuesta con palabras o comandos cortos.
+                androidIntentOptions: {
+                    EXTRA_LANGUAGE_MODEL: "web_search",
+                },
+
+                // Útil para comprobar si el micrófono recibe sonido.
+                volumeChangeEventOptions: {
+                    enabled: true,
+                    intervalMillis: 500,
+                },
+            });
+        } catch (error) {
+            console.log("VOICE START ERROR:", error);
+
+            setIsListening(false);
+            activeRef.current = false;
+            setIsVoiceAssistantActive(false);
+
+            speak(
+                "No pude iniciar el reconocimiento de voz.",
+                voiceRateValue
+            );
+        }
+    }, [voiceRateValue]);
+
+    const respondAndContinue = useCallback(
+        (message: string) => {
+            if (!activeRef.current) return;
+
+            setIsListening(false);
+
+            console.log("ASSISTANT RESPONSE:", message);
+
+            speak(message, voiceRateValue, {
+                onDone: () => {
+                    setTimeout(() => {
+                        if (activeRef.current) {
+                            startListening();
+                        }
+                    }, 300);
+                },
+
+                onError: (error) => {
+                    console.log("ASSISTANT SPEECH ERROR:", error);
+
+                    setTimeout(() => {
+                        if (activeRef.current) {
+                            startListening();
+                        }
+                    }, 300);
+                },
+            });
         },
-      });
-    },
-    [startListening, voiceRateValue]
-  );
-
-  const deactivateVoiceAssistant = useCallback(
-    (announce: boolean = true) => {
-      console.log("VOICE STATUS: disabled");
-
-      activeRef.current = false;
-
-      setIsVoiceAssistantActive(false);
-      setIsListening(false);
-      setLastTranscript("");
-
-      stopSpeaking();
-
-      if (announce) {
-        speak(
-          "Asistente de voz desactivado.",
-          voiceRateValue
-        );
-      }
-    },
-    [voiceRateValue]
-  );
-
-  const activateVoiceAssistant = useCallback(() => {
-    if (activeRef.current) {
-      respondAndContinue(
-        "El asistente ya se encuentra activo."
-      );
-      return;
-    }
-
-    console.log("VOICE STATUS: enabled");
-
-    activeRef.current = true;
-
-    setIsVoiceAssistantActive(true);
-    setIsListening(false);
-    setLastTranscript("");
-
-    stopSpeaking();
-
-    speak(
-      "Asistente de voz activado. ¿En qué te puedo ayudar?",
-      voiceRateValue,
-      {
-        onDone: () => {
-          setTimeout(startListening, 300);
-        },
-
-        onError: (error) => {
-          console.log("ASSISTANT SPEECH ERROR:", error);
-          setTimeout(startListening, 300);
-        },
-      }
+        [startListening, voiceRateValue]
     );
-  }, [
-    respondAndContinue,
-    startListening,
-    voiceRateValue,
-  ]);
 
-  const toggleVoiceAssistant = useCallback(() => {
-    if (activeRef.current) {
-      deactivateVoiceAssistant();
-    } else {
-      activateVoiceAssistant();
-    }
-  }, [
-    activateVoiceAssistant,
-    deactivateVoiceAssistant,
-  ]);
+    const deactivateVoiceAssistant = useCallback(
+        (announce: boolean = true) => {
+            console.log("VOICE STATUS: disabled");
 
-  const executeCommand = useCallback(
-    (command: VoiceCommand) => {
-      switch (command) {
-        case "deactivate":
-          deactivateVoiceAssistant();
-          return;
+            activeRef.current = false;
 
-        case "activate":
-          respondAndContinue(
-            "El asistente ya está activo. Puedes decir cámara, historial, configuración, inicio, volver o ayuda."
-          );
-          return;
+            pendingCommandRef.current = null;
+            pendingErrorRef.current = null;
+            processingFinalResultRef.current = false;
 
-        case "camera":
-          router.replace("/camera");
-          respondAndContinue("Abriendo la cámara.");
-          return;
+            setIsVoiceAssistantActive(false);
+            setIsListening(false);
+            setLastTranscript("");
 
-        case "settings":
-          router.replace("/settings");
-          respondAndContinue(
-            "Abriendo la configuración."
-          );
-          return;
+            try {
+                ExpoSpeechRecognitionModule.abort();
+            } catch (error) {
+                console.log("VOICE ABORT ERROR:", error);
+            }
 
-        case "history":
-          router.replace("/history");
-          respondAndContinue("Abriendo el historial.");
-          return;
+            stopSpeaking();
 
-        case "home":
-          router.replace("/home");
-          respondAndContinue("Volviendo al inicio.");
-          return;
+            if (announce) {
+                speak(
+                    "Asistente de voz desactivado.",
+                    voiceRateValue
+                );
+            }
+        },
+        [voiceRateValue]
+    );
 
-        case "back":
-          if (pathname === "/home" || pathname === "/") {
+    const activateVoiceAssistant = useCallback(() => {
+        if (activeRef.current) {
             respondAndContinue(
-              "Ya te encuentras en la pantalla principal."
+                "El asistente ya se encuentra activo."
             );
-          } else {
-            router.back();
-            respondAndContinue(
-              "Regresando a la pantalla anterior."
-            );
-          }
-          return;
+            return;
+        }
 
-        case "help":
-          respondAndContinue(
-            "Puedes decir: abrir cámara, historial, configuración, ir al inicio, volver o desactivar voz."
-          );
-          return;
+        console.log("VOICE STATUS: enabled");
 
-        default:
-          respondAndContinue(
-            "No entendí el comando. Puedes decir cámara, historial, configuración, inicio, volver, ayuda o desactivar voz."
-          );
-      }
-    },
-    [
-      deactivateVoiceAssistant,
-      pathname,
-      respondAndContinue,
-    ]
-  );
+        activeRef.current = true;
 
-  const processTranscript = useCallback(
-    (voiceText: string) => {
-      const safeText = voiceText.trim();
+        setIsVoiceAssistantActive(true);
+        setIsListening(false);
+        setLastTranscript("");
 
-      // Mantiene el log solicitado para las pruebas.
-      console.log("RAW TEXT:", safeText);
-
-      setLastTranscript(safeText);
-      setIsListening(false);
-
-      const command = parseCommand(safeText);
-
-      console.log("FINAL COMMAND:", command);
-
-      executeCommand(command);
-    },
-    [executeCommand]
-  );
-
-  const handleWebViewMessage = useCallback(
-    (rawMessage: string) => {
-      let message: WebViewMessage;
-
-      try {
-        message = JSON.parse(rawMessage) as WebViewMessage;
-      } catch (error) {
-        console.log(
-          "VOICE MESSAGE PARSE ERROR:",
-          error
-        );
-        return;
-      }
-
-      if (message.type === "status") {
-        console.log(
-          "WEBVIEW VOICE STATUS:",
-          message.status
-        );
-        return;
-      }
-
-      if (message.type === "result") {
-        processTranscript(message.text);
-        return;
-      }
-
-      if (message.type === "no-support") {
-        console.log(
-          "VOICE ERROR: SpeechRecognition no disponible"
-        );
-
-        deactivateVoiceAssistant(false);
+        stopSpeaking();
 
         speak(
-          "El reconocimiento de voz no está disponible en este dispositivo.",
-          voiceRateValue
+            "Asistente de voz activado. ¿En qué te puedo ayudar?",
+            voiceRateValue,
+            {
+                onDone: () => {
+                    setTimeout(startListening, 300);
+                },
+
+                onError: (error) => {
+                    console.log("ASSISTANT SPEECH ERROR:", error);
+                    setTimeout(startListening, 300);
+                },
+            }
         );
+    }, [
+        respondAndContinue,
+        startListening,
+        voiceRateValue,
+    ]);
 
-        return;
-      }
+    const toggleVoiceAssistant = useCallback(() => {
+        if (activeRef.current) {
+            deactivateVoiceAssistant();
+        } else {
+            activateVoiceAssistant();
+        }
+    }, [
+        activateVoiceAssistant,
+        deactivateVoiceAssistant,
+    ]);
 
-      if (message.type === "error") {
+    const executeCommand = useCallback(
+        (command: VoiceCommand) => {
+            switch (command) {
+                case "deactivate":
+                    deactivateVoiceAssistant();
+                    return;
+
+                case "activate":
+                    respondAndContinue(
+                        "El asistente ya está activo. Puedes decir cámara, historial, configuración, inicio, volver o ayuda."
+                    );
+                    return;
+
+                case "camera":
+                    router.replace("/camera");
+                    respondAndContinue("Abriendo la cámara.");
+                    return;
+
+                case "settings":
+                    router.replace("/settings");
+                    respondAndContinue(
+                        "Abriendo la configuración."
+                    );
+                    return;
+
+                case "history":
+                    router.replace("/history");
+                    respondAndContinue("Abriendo el historial.");
+                    return;
+
+                case "home":
+                    router.replace("/home");
+                    respondAndContinue("Volviendo al inicio.");
+                    return;
+
+                case "back":
+                    if (pathname === "/home" || pathname === "/") {
+                        respondAndContinue(
+                            "Ya te encuentras en la pantalla principal."
+                        );
+                    } else {
+                        router.back();
+                        respondAndContinue(
+                            "Regresando a la pantalla anterior."
+                        );
+                    }
+                    return;
+
+                case "help":
+                    respondAndContinue(
+                        "Puedes decir: abrir cámara, historial, configuración, ir al inicio, volver o desactivar voz."
+                    );
+                    return;
+
+                default:
+                    respondAndContinue(
+                        "No entendí el comando. Puedes decir cámara, historial, configuración, inicio, volver, ayuda o desactivar voz."
+                    );
+            }
+        },
+        [
+            deactivateVoiceAssistant,
+            pathname,
+            respondAndContinue,
+        ]
+    );
+
+    const processTranscript = useCallback(
+        (voiceText: string) => {
+            const safeText = voiceText.trim();
+
+            // Mantiene el log solicitado para las pruebas.
+            console.log("RAW TEXT:", safeText);
+
+            setLastTranscript(safeText);
+            setIsListening(false);
+
+            const command = parseCommand(safeText);
+
+            console.log("FINAL COMMAND:", command);
+
+            executeCommand(command);
+        },
+        [executeCommand]
+    );
+
+    useSpeechRecognitionEvent("start", () => {
+        console.log("VOICE EVENT: start");
+        setIsListening(true);
+    });
+
+    useSpeechRecognitionEvent("audiostart", () => {
+        console.log("VOICE EVENT: audiostart");
+    });
+
+    useSpeechRecognitionEvent("speechstart", () => {
+        console.log("VOICE EVENT: speechstart");
+    });
+
+    useSpeechRecognitionEvent("volumechange", (event) => {
+        console.log("VOICE VOLUME:", event.value);
+    });
+
+    useSpeechRecognitionEvent("result", (event) => {
+        const transcript =
+            event.results?.[0]?.transcript?.trim() ?? "";
+
         console.log(
-          "VOICE RECOGNITION ERROR:",
-          message.error
+            event.isFinal ? "RAW TEXT:" : "RAW PARTIAL:",
+            transcript
         );
+
+        console.log(
+            "VOICE ALTERNATIVES:",
+            event.results
+        );
+
+        if (
+            !event.isFinal ||
+            !transcript ||
+            processingFinalResultRef.current
+        ) {
+            return;
+        }
+
+        processingFinalResultRef.current = true;
+
+        setLastTranscript(transcript);
+
+        const command = parseCommand(transcript);
+
+        console.log("FINAL COMMAND:", command);
+
+        pendingCommandRef.current = command;
+    });
+
+    useSpeechRecognitionEvent("error", (event) => {
+        console.log("VOICE EVENT ERROR:", {
+            error: event.error,
+            message: event.message,
+            code: event.code,
+        });
 
         setIsListening(false);
 
+        if (!activeRef.current) {
+            return;
+        }
+
         if (
-          message.error === "no-speech" ||
-          message.error === "aborted"
+            event.error === "no-speech" ||
+            event.error === "speech-timeout"
         ) {
-          respondAndContinue(
-            "No pude escucharte. Intenta nuevamente."
-          );
-          return;
+            pendingErrorRef.current =
+                "No pude escucharte. Intenta nuevamente.";
+
+            return;
+        }
+
+        if (event.error === "aborted") {
+            return;
+        }
+
+        if (event.error === "not-allowed") {
+            pendingErrorRef.current =
+                "No tengo permiso para utilizar el micrófono.";
+
+            return;
+        }
+
+        if (event.error === "network") {
+            pendingErrorRef.current =
+                "No se pudo utilizar el reconocimiento de voz por un problema de conexión.";
+
+            return;
+        }
+
+        pendingErrorRef.current =
+            "Ocurrió un problema al reconocer la voz. Intenta nuevamente.";
+    });
+
+    useSpeechRecognitionEvent("end", () => {
+        console.log("VOICE EVENT: end");
+
+        setIsListening(false);
+
+        const command = pendingCommandRef.current;
+        const errorMessage = pendingErrorRef.current;
+
+        pendingCommandRef.current = null;
+        pendingErrorRef.current = null;
+        processingFinalResultRef.current = false;
+
+        if (!activeRef.current) {
+            return;
+        }
+
+        if (command) {
+            executeCommand(command);
+            return;
+        }
+
+        if (errorMessage) {
+            respondAndContinue(errorMessage);
+            return;
         }
 
         respondAndContinue(
-          "Ocurrió un problema con el reconocimiento de voz. Intenta nuevamente."
+            "No pude identificar un comando. Intenta nuevamente."
         );
-      }
-    },
-    [
-      deactivateVoiceAssistant,
-      processTranscript,
-      respondAndContinue,
-      voiceRateValue,
-    ]
-  );
+    });
 
-  const contextValue = useMemo(
-    () => ({
-      isVoiceAssistantActive,
-      isListening,
-      lastTranscript,
-      activateVoiceAssistant,
-      deactivateVoiceAssistant,
-      toggleVoiceAssistant,
-    }),
-    [
-      activateVoiceAssistant,
-      deactivateVoiceAssistant,
-      isListening,
-      isVoiceAssistantActive,
-      lastTranscript,
-      toggleVoiceAssistant,
-    ]
-  );
+    const contextValue = useMemo(
+        () => ({
+            isVoiceAssistantActive,
+            isListening,
+            lastTranscript,
+            activateVoiceAssistant,
+            deactivateVoiceAssistant,
+            toggleVoiceAssistant,
+        }),
+        [
+            activateVoiceAssistant,
+            deactivateVoiceAssistant,
+            isListening,
+            isVoiceAssistantActive,
+            lastTranscript,
+            toggleVoiceAssistant,
+        ]
+    );
 
-  return (
-    <VoiceAssistantContext.Provider value={contextValue}>
-      {children}
+    return (
+        <VoiceAssistantContext.Provider value={contextValue}>
+            {children}
 
-      <Modal
-        visible={isListening}
-        transparent
-        animationType="fade"
-        statusBarTranslucent
-        onRequestClose={() =>
-          deactivateVoiceAssistant()
-        }
-      >
-        <View style={styles.overlay}>
-          <View style={styles.assistantCard}>
-            <Text
-              style={styles.title}
-              accessibilityRole="header"
-              accessibilityLiveRegion="polite"
+            <Modal
+                visible={isListening}
+                transparent
+                animationType="fade"
+                statusBarTranslucent
+                onRequestClose={() =>
+                    deactivateVoiceAssistant()
+                }
             >
-              🎤 Escuchando...
-            </Text>
+                <View style={styles.overlay}>
+                    <View style={styles.assistantCard}>
+                        <Text
+                            style={styles.title}
+                            accessibilityRole="header"
+                            accessibilityLiveRegion="polite"
+                        >
+                            🎤 Escuchando...
+                        </Text>
 
-            <Text style={styles.description}>
-              Di un comando como cámara, historial,
-              configuración, inicio o desactivar voz.
-            </Text>
+                        <Text style={styles.description}>
+                            Di un comando como cámara, historial,
+                            configuración, inicio o desactivar voz.
+                        </Text>
 
-            {lastTranscript ? (
-              <Text style={styles.transcript}>
-                Último comando: {lastTranscript}
-              </Text>
-            ) : null}
+                        {lastTranscript ? (
+                            <Text style={styles.transcript}>
+                                Último comando: {lastTranscript}
+                            </Text>
+                        ) : null}
 
-            <WebView
-              key={recognitionKey}
-              originWhitelist={["*"]}
-              source={{ html: RECOGNITION_HTML }}
-              javaScriptEnabled
-              onMessage={(event) => {
-                handleWebViewMessage(
-                  event.nativeEvent.data
-                );
-              }}
-              style={styles.hiddenWebView}
-            />
-
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Desactivar asistente de voz"
-              accessibilityHint="Detiene el reconocimiento de comandos"
-              style={({ pressed }) => [
-                styles.cancelButton,
-                pressed && styles.pressed,
-              ]}
-              onPress={() =>
-                deactivateVoiceAssistant()
-              }
-            >
-              <Text style={styles.cancelText}>
-                Desactivar voz
-              </Text>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
-    </VoiceAssistantContext.Provider>
-  );
+                        <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel="Desactivar asistente de voz"
+                            accessibilityHint="Detiene el reconocimiento de comandos"
+                            style={({ pressed }) => [
+                                styles.cancelButton,
+                                pressed && styles.pressed,
+                            ]}
+                            onPress={() =>
+                                deactivateVoiceAssistant()
+                            }
+                        >
+                            <Text style={styles.cancelText}>
+                                Desactivar voz
+                            </Text>
+                        </Pressable>
+                    </View>
+                </View>
+            </Modal>
+        </VoiceAssistantContext.Provider>
+    );
 }
 
 export function useVoiceAssistant() {
-  const context = useContext(VoiceAssistantContext);
+    const context = useContext(VoiceAssistantContext);
 
-  if (!context) {
-    throw new Error(
-      "useVoiceAssistant debe utilizarse dentro de VoiceAssistantProvider"
-    );
-  }
+    if (!context) {
+        throw new Error(
+            "useVoiceAssistant debe utilizarse dentro de VoiceAssistantProvider"
+        );
+    }
 
-  return context;
+    return context;
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.82)",
-    justifyContent: "center",
-    padding: 24,
-  },
+    overlay: {
+        flex: 1,
+        backgroundColor: "rgba(0, 0, 0, 0.82)",
+        justifyContent: "center",
+        padding: 24,
+    },
 
-  assistantCard: {
-    backgroundColor: "#111111",
-    borderColor: "#FFFFFF",
-    borderWidth: 2,
-    borderRadius: 24,
-    padding: 24,
-    alignItems: "center",
-    gap: 18,
-  },
+    assistantCard: {
+        backgroundColor: "#111111",
+        borderColor: "#FFFFFF",
+        borderWidth: 2,
+        borderRadius: 24,
+        padding: 24,
+        alignItems: "center",
+        gap: 18,
+    },
 
-  title: {
-    color: "#FFFFFF",
-    fontSize: 26,
-    fontWeight: "800",
-    textAlign: "center",
-  },
+    title: {
+        color: "#FFFFFF",
+        fontSize: 26,
+        fontWeight: "800",
+        textAlign: "center",
+    },
 
-  description: {
-    color: "#FFFFFF",
-    fontSize: 17,
-    lineHeight: 25,
-    textAlign: "center",
-  },
+    description: {
+        color: "#FFFFFF",
+        fontSize: 17,
+        lineHeight: 25,
+        textAlign: "center",
+    },
 
-  transcript: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
-    textAlign: "center",
-  },
+    transcript: {
+        color: "#FFFFFF",
+        fontSize: 16,
+        fontWeight: "600",
+        textAlign: "center",
+    },
 
-  hiddenWebView: {
-    width: 2,
-    height: 2,
-    opacity: 0.01,
-  },
+    cancelButton: {
+        width: "100%",
+        minHeight: 56,
+        backgroundColor: "#FFFFFF",
+        borderRadius: 16,
+        justifyContent: "center",
+        alignItems: "center",
+        paddingHorizontal: 18,
+    },
 
-  cancelButton: {
-    width: "100%",
-    minHeight: 56,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 18,
-  },
+    cancelText: {
+        color: "#000000",
+        fontSize: 17,
+        fontWeight: "800",
+    },
 
-  cancelText: {
-    color: "#000000",
-    fontSize: 17,
-    fontWeight: "800",
-  },
-
-  pressed: {
-    opacity: 0.7,
-  },
+    pressed: {
+        opacity: 0.7,
+    },
 });
