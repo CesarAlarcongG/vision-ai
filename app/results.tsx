@@ -4,204 +4,270 @@ import {
   AppScreen,
   Card,
   TopBar,
-  VoiceBanner,
 } from "@/components/AccessibleUI";
+
+import SwipeHistoryCard from "@/components/SwipeHistoryCard";
+
 import { spacing } from "@/constants/theme";
 import { useAccessibility } from "@/contexts/AccesibilityContext";
 import { speak } from "@/services/speech";
-import { useRouter } from "expo-router";
+
+import {
+  AnalysisHistoryItem,
+  getHistory,
+  deleteHistoryItem,
+} from "@/services/historyStorage";
+
+import { useLocalSearchParams, useRouter } from "expo-router";
+
+import { useEffect, useState } from "react";
+
 import { Alert, StyleSheet, View } from "react-native";
-
-const RESULT_SUMMARY =
-  "Es una botella de agua sobre una mesa. Hay texto en la etiqueta.";
-
-const RESULT_SUMMARY_SIMPLE =
-  "Resultado listo. Detecté una botella de agua.";
-
-const RESULT_TITLE = "Botella de agua sobre una mesa";
-
-const RESULT_DESCRIPTION =
-  "Detecté una botella transparente con etiqueta clara. También hay texto legible: Agua natural. El objeto está a una distancia segura y bien iluminado.";
-
-const RESULT_DESCRIPTION_SIMPLE =
-  "Detecté una botella de agua sobre una mesa. Hay texto en la etiqueta.";
 
 export default function ResultsScreen() {
   const router = useRouter();
+
+  const { description } = useLocalSearchParams<{
+    description?: string;
+  }>();
+
   const { voiceEnabled, voiceRateValue, simplifiedMode } = useAccessibility();
 
-  const visibleSummary = simplifiedMode ? RESULT_SUMMARY_SIMPLE : RESULT_SUMMARY;
-  const visibleDescription = simplifiedMode
-    ? RESULT_DESCRIPTION_SIMPLE
-    : RESULT_DESCRIPTION;
+  const aiDescription =
+    typeof description === "string"
+      ? description
+      : "No se pudo analizar la imagen.";
+
+  const [history, setHistory] = useState<AnalysisHistoryItem[]>([]);
+
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const currentItem = history[currentIndex];
+
+  const visibleDescription = currentItem?.description ?? aiDescription;
+
+  useEffect(() => {
+    loadHistory();
+  }, []);
+
+  const loadHistory = async () => {
+    const data = await getHistory();
+    setHistory(data);
+  };
+
+  const goNext = () => {
+    if (currentIndex < history.length - 1) {
+      setCurrentIndex((prev) => prev + 1);
+    }
+  };
+
+  const goPrevious = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex((prev) => prev - 1);
+    }
+  };
+
+  const deleteCurrent = async () => {
+    if (!currentItem) return;
+
+    await deleteHistoryItem(currentItem.id);
+
+    const updatedHistory = await getHistory();
+
+    setHistory(updatedHistory);
+
+    if (currentIndex >= updatedHistory.length && updatedHistory.length > 0) {
+      setCurrentIndex(updatedHistory.length - 1);
+    }
+
+    if (updatedHistory.length === 0) {
+      setCurrentIndex(0);
+    }
+  };
 
   const handleRepeatResult = () => {
     if (!voiceEnabled) {
       Alert.alert(
         "Narración desactivada",
-        "Activa la narración por voz en configuración para escuchar el resultado."
+        "Activa la narración por voz en configuración para escuchar el resultado.",
       );
+
       return;
     }
 
-    speak(`${RESULT_TITLE}. ${visibleDescription}`, voiceRateValue);
+    speak(visibleDescription, voiceRateValue);
   };
+
+  useEffect(() => {
+    if (!voiceEnabled) return;
+
+    speak(visibleDescription, voiceRateValue);
+  }, [visibleDescription, voiceEnabled, voiceRateValue]);
 
   return (
     <AppScreen>
-      <TopBar
-        onHome={() => router.replace("/home")}
-        onSettings={() => router.push("/settings")}
-      />
+      <View style={styles.containerAll}>
+        <TopBar
+          onHome={() => router.replace("/home")}
+          onSettings={() => router.push("/settings")}
+        />
 
-      <VoiceBanner text={visibleSummary} />
+        {simplifiedMode && (
+          <Card style={styles.simplifiedNotice}>
+            <AccessibleText variant="body" bold centered>
+              Modo simplificado activo
+            </AccessibleText>
 
-      {simplifiedMode && (
-        <Card style={styles.simplifiedNotice}>
-          <AccessibleText variant="body" bold centered>
-            Modo simplificado activo
-          </AccessibleText>
-          <AccessibleText variant="small" muted centered>
-            Se muestran solo las acciones más importantes.
-          </AccessibleText>
-        </Card>
-      )}
-
-      <Card style={styles.resultCard}>
-        {!simplifiedMode && (
-          <AccessibleText variant="caption" muted bold style={styles.label}>
-            RESULTADO INTELIGENTE
-          </AccessibleText>
+            <AccessibleText variant="small" muted centered>
+              Se muestran solo las acciones más importantes.
+            </AccessibleText>
+          </Card>
         )}
 
-        <AccessibleText variant="subtitle" bold centered={simplifiedMode}>
-          {RESULT_TITLE}
-        </AccessibleText>
+        {/* Contenedor flexible para centrar verticalmente la tarjeta de historial */}
+        <View style={styles.centerContainer}>
+          <SwipeHistoryCard
+            onDelete={deleteCurrent}
+            onRepeat={handleRepeatResult}
+            onNext={goNext}
+            onPrevious={goPrevious}
+            currentCard={
+              <Card style={styles.resultCard}>
+                {!simplifiedMode && (
+                  <AccessibleText
+                    variant="caption"
+                    muted
+                    bold
+                    style={styles.label}
+                  >
+                    RESULTADO INTELIGENTE
+                  </AccessibleText>
+                )}
 
-        <AccessibleText variant="body" centered={simplifiedMode}>
-          {visibleDescription}
-        </AccessibleText>
-      </Card>
+                <AccessibleText
+                  variant="subtitle"
+                  bold
+                  centered={simplifiedMode}
+                >
+                  Resultado del análisis
+                </AccessibleText>
 
-      {simplifiedMode ? (
-        <View style={styles.simpleActions}>
-          <AccessibleButton
-            label="Repetir"
-            hint="Lee nuevamente el resultado usando voz"
-            variant="primary"
-            onPress={handleRepeatResult}
-            style={styles.fullButton}
-          />
+                <AccessibleText variant="body" centered={simplifiedMode}>
+                  {visibleDescription}
+                </AccessibleText>
 
-          <AccessibleButton
-            label="Nueva Captura"
-            hint="Abre la cámara para escanear otro objeto o texto"
-            variant="secondary"
-            onPress={() => router.replace("/camera")}
-            style={styles.fullButton}
-          />
+                {history.length > 0 && (
+                  <AccessibleText
+                    variant="small"
+                    muted
+                    centered
+                    style={styles.indexText}
+                  >
+                    {currentIndex + 1} de {history.length}
+                  </AccessibleText>
+                )}
+              </Card>
+            }
+            nextCard={
+              history[currentIndex + 1] ? (
+                <Card style={styles.resultCard}>
+                  <AccessibleText variant="subtitle" bold>
+                    Siguiente análisis
+                  </AccessibleText>
 
-          <AccessibleButton
-            label="Inicio"
-            hint="Regresa a la pantalla principal"
-            variant="secondary"
-            onPress={() => router.replace("/home")}
-            style={styles.fullButton}
+                  <AccessibleText variant="body">
+                    {history[currentIndex + 1].description}
+                  </AccessibleText>
+                </Card>
+              ) : undefined
+            }
+            previousCard={
+              history[currentIndex - 1] ? (
+                <Card style={styles.resultCard}>
+                  <AccessibleText variant="subtitle" bold>
+                    Análisis anterior
+                  </AccessibleText>
+
+                  <AccessibleText variant="body">
+                    {history[currentIndex - 1].description}
+                  </AccessibleText>
+                </Card>
+              ) : undefined
+            }
           />
         </View>
-      ) : (
-        <>
-          <View style={styles.grid}>
-            <AccessibleButton
-              label="Más Detalles"
-              variant="secondary"
-              onPress={() =>
-                Alert.alert("Más detalles", "Resultado ampliado simulado.")
-              }
-              style={styles.gridButton}
-            />
 
+        {simplifiedMode ? (
+          <View>
             <AccessibleButton
               label="Repetir"
-              hint="Lee nuevamente el resultado detectado usando voz"
-              variant="secondary"
+              hint="Lee nuevamente el resultado usando voz"
+              variant="primary"
               onPress={handleRepeatResult}
-              style={styles.gridButton}
+              style={styles.fullButton}
             />
 
-            <AccessibleButton
-              label="Traducir"
-              variant="secondary"
-              onPress={() => Alert.alert("Traducir", "Traducción simulada.")}
-              style={styles.gridButton}
-            />
-
-            <AccessibleButton
-              label="Guardar"
-              variant="secondary"
-              onPress={() =>
-                Alert.alert("Guardado", "Resultado guardado en historial.")
-              }
-              style={styles.gridButton}
-            />
-          </View>
-
-          <View style={styles.bottomNav}>
             <AccessibleButton
               label="Nueva Captura"
+              hint="Abre la cámara para escanear otro objeto o texto"
               variant="secondary"
               onPress={() => router.replace("/camera")}
-              style={styles.navButton}
-            />
-
-            <AccessibleButton
-              label="Historial"
-              variant="secondary"
-              onPress={() => router.push("/history")}
-              style={styles.navButton}
+              style={styles.fullButton}
             />
 
             <AccessibleButton
               label="Inicio"
+              hint="Regresa a la pantalla principal"
               variant="secondary"
               onPress={() => router.replace("/home")}
-              style={styles.navButton}
+              style={styles.fullButton}
             />
           </View>
-        </>
-      )}
+        ) : (
+          <View>
+            <AccessibleButton
+              label="Nueva Captura"
+              hint="Abre la cámara para analizar otra imagen"
+              variant="secondary"
+              onPress={() => router.replace("/camera")}
+              style={styles.fullButton}
+            />
+          </View>
+        )}
+      </View>
     </AppScreen>
   );
 }
 
 const styles = StyleSheet.create({
+  containerAll: {
+    flex: 1,
+    justifyContent: "space-between",
+  },
+
   simplifiedNotice: {
     gap: spacing.xs,
+    marginBottom: spacing.sm,
   },
+
+  centerContainer: {
+    justifyContent: "center",
+    width: "100%",
+  },
+
   resultCard: {
     gap: spacing.md,
+    paddingVertical: spacing.lg,
   },
+
   label: {
     letterSpacing: 1,
   },
-  grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.md,
+
+  indexText: {
+    marginTop: spacing.sm,
   },
-  gridButton: {
-    width: "47%",
-  },
-  bottomNav: {
-    flexDirection: "row",
-    gap: spacing.sm,
-  },
-  navButton: {
-    flex: 1,
-  },
-  simpleActions: {
-    gap: spacing.md,
-  },
+
   fullButton: {
     width: "100%",
   },
