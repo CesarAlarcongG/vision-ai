@@ -63,23 +63,43 @@ export function VoiceAssistantProvider({
     const pendingCommandRef = useRef<VoiceCommand | null>(null);
     const pendingErrorRef = useRef<string | null>(null);
     const processingFinalResultRef = useRef(false);
+    const recognitionRunningRef = useRef(false);
+    const startingRecognitionRef = useRef(false);
 
     const startListening = useCallback(async () => {
+        console.log("START LISTENING CALLED");
+
         if (!activeRef.current) {
             console.log("VOICE START CANCELLED: assistant inactive");
             return;
         }
 
+        if (
+            startingRecognitionRef.current ||
+            recognitionRunningRef.current
+        ) {
+            console.log(
+                "VOICE START CANCELLED: recognition already active"
+            );
+            return;
+        }
+
+        startingRecognitionRef.current = true;
+
         try {
             const available =
                 ExpoSpeechRecognitionModule.isRecognitionAvailable();
 
-            console.log("VOICE RECOGNITION AVAILABLE:", available);
+            console.log(
+                "VOICE RECOGNITION AVAILABLE:",
+                available
+            );
 
             try {
                 console.log(
                     "VOICE RECOGNITION SERVICES:",
-                    ExpoSpeechRecognitionModule.getSpeechRecognitionServices()
+                    ExpoSpeechRecognitionModule
+                        .getSpeechRecognitionServices()
                 );
             } catch (serviceError) {
                 console.log(
@@ -102,7 +122,8 @@ export function VoiceAssistantProvider({
             }
 
             const permission =
-                await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+                await ExpoSpeechRecognitionModule
+                    .requestPermissionsAsync();
 
             console.log("VOICE PERMISSION:", permission);
 
@@ -131,12 +152,10 @@ export function VoiceAssistantProvider({
                 continuous: false,
                 maxAlternatives: 3,
 
-                // Mejora la respuesta con palabras o comandos cortos.
                 androidIntentOptions: {
                     EXTRA_LANGUAGE_MODEL: "web_search",
                 },
 
-                // Útil para comprobar si el micrófono recibe sonido.
                 volumeChangeEventOptions: {
                     enabled: true,
                     intervalMillis: 500,
@@ -153,6 +172,8 @@ export function VoiceAssistantProvider({
                 "No pude iniciar el reconocimiento de voz.",
                 voiceRateValue
             );
+        } finally {
+            startingRecognitionRef.current = false;
         }
     }, [voiceRateValue]);
 
@@ -201,10 +222,18 @@ export function VoiceAssistantProvider({
             setIsListening(false);
             setLastTranscript("");
 
-            try {
-                ExpoSpeechRecognitionModule.abort();
-            } catch (error) {
-                console.log("VOICE ABORT ERROR:", error);
+            if (recognitionRunningRef.current) {
+                try {
+                    console.log("VOICE: aborting active recognition");
+
+                    ExpoSpeechRecognitionModule.abort();
+                } catch (error) {
+                    console.log("VOICE ABORT ERROR:", error);
+                }
+            } else {
+                console.log(
+                    "VOICE: recognition was not running; abort skipped"
+                );
             }
 
             stopSpeaking();
@@ -221,9 +250,7 @@ export function VoiceAssistantProvider({
 
     const activateVoiceAssistant = useCallback(() => {
         if (activeRef.current) {
-            respondAndContinue(
-                "El asistente ya se encuentra activo."
-            );
+            console.log("VOICE STATUS: already enabled");
             return;
         }
 
@@ -237,25 +264,56 @@ export function VoiceAssistantProvider({
 
         stopSpeaking();
 
+        console.log("ASSISTANT: preparing activation message");
+
         speak(
             "Asistente de voz activado. ¿En qué te puedo ayudar?",
             voiceRateValue,
             {
+                onStart: () => {
+                    console.log("ASSISTANT ACTIVATION SPEECH: start");
+                },
+
                 onDone: () => {
-                    setTimeout(startListening, 300);
+                    console.log("ASSISTANT ACTIVATION SPEECH: done");
+
+                    setTimeout(() => {
+                        if (!activeRef.current) {
+                            console.log(
+                                "VOICE START CANCELLED: assistant was disabled"
+                            );
+                            return;
+                        }
+
+                        console.log(
+                            "ASSISTANT: starting recognition after speech"
+                        );
+
+                        void startListening();
+                    }, 300);
+                },
+
+                onStopped: () => {
+                    console.log(
+                        "ASSISTANT ACTIVATION SPEECH: stopped"
+                    );
                 },
 
                 onError: (error) => {
-                    console.log("ASSISTANT SPEECH ERROR:", error);
-                    setTimeout(startListening, 300);
+                    console.log(
+                        "ASSISTANT ACTIVATION SPEECH ERROR:",
+                        error
+                    );
+
+                    setTimeout(() => {
+                        if (activeRef.current) {
+                            void startListening();
+                        }
+                    }, 300);
                 },
             }
         );
-    }, [
-        respondAndContinue,
-        startListening,
-        voiceRateValue,
-    ]);
+    }, [startListening, voiceRateValue]);
 
     const toggleVoiceAssistant = useCallback(() => {
         if (activeRef.current) {
@@ -272,6 +330,9 @@ export function VoiceAssistantProvider({
         (command: VoiceCommand) => {
             switch (command) {
                 case "deactivate":
+                    respondAndContinue(
+                        "El asistente se ha desactivado."
+                    );
                     deactivateVoiceAssistant();
                     return;
 
@@ -335,27 +396,10 @@ export function VoiceAssistantProvider({
         ]
     );
 
-    const processTranscript = useCallback(
-        (voiceText: string) => {
-            const safeText = voiceText.trim();
-
-            // Mantiene el log solicitado para las pruebas.
-            console.log("RAW TEXT:", safeText);
-
-            setLastTranscript(safeText);
-            setIsListening(false);
-
-            const command = parseCommand(safeText);
-
-            console.log("FINAL COMMAND:", command);
-
-            executeCommand(command);
-        },
-        [executeCommand]
-    );
-
     useSpeechRecognitionEvent("start", () => {
         console.log("VOICE EVENT: start");
+
+        recognitionRunningRef.current = true;
         setIsListening(true);
     });
 
@@ -452,6 +496,7 @@ export function VoiceAssistantProvider({
     useSpeechRecognitionEvent("end", () => {
         console.log("VOICE EVENT: end");
 
+        recognitionRunningRef.current = false;
         setIsListening(false);
 
         const command = pendingCommandRef.current;

@@ -2,7 +2,7 @@ import { colors, radius, spacing } from "@/constants/theme";
 import { useAccessibility } from "@/contexts/AccesibilityContext";
 import { useVoiceAssistant } from "@/contexts/VoiceAssistantContext";
 import { lightHaptic } from "@/services/haptics";
-import { speak, stopSpeaking } from "@/services/speech";
+import { speak } from "@/services/speech";
 import { useRouter } from "expo-router";
 import { ReactNode, useEffect } from "react";
 import {
@@ -121,21 +121,19 @@ export function VoiceBanner({ text }: VoiceBannerProps) {
   const { isVoiceAssistantActive } = useVoiceAssistant();
 
   useEffect(() => {
-    // Mientras el asistente está activo, no reproducimos
-    // automáticamente los banners de cada pantalla.
     if (!voiceEnabled || isVoiceAssistantActive) {
       return;
     }
-
-    stopSpeaking();
 
     const timer = setTimeout(() => {
       speak(text, voiceRateValue);
     }, 300);
 
     return () => {
+      // Solo cancelamos la narración que aún no comenzó.
+      // No llamamos stopSpeaking(), porque podría detener
+      // la voz global del asistente.
       clearTimeout(timer);
-      stopSpeaking();
     };
   }, [
     text,

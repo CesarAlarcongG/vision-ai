@@ -18,6 +18,7 @@ type CommandAliases = Record<
 
 const COMMAND_ALIASES: CommandAliases = {
   deactivate: [
+    "desactivar",
     "desactivar voz",
     "apagar voz",
     "desactivar asistente",
@@ -30,6 +31,7 @@ const COMMAND_ALIASES: CommandAliases = {
   ],
 
   activate: [
+    "activar",
     "activar voz",
     "encender voz",
     "activar asistente",
@@ -79,13 +81,7 @@ const COMMAND_ALIASES: CommandAliases = {
     "menu principal",
   ],
 
-  back: [
-    "atras",
-    "volver",
-    "regresar",
-    "volver atras",
-    "regresa",
-    "pantalla anterior",
+  back: [ // No se incluyen "volver" o "regresar" solos para evitar conflictos con comandos como "volver a abrir la cámara".
   ],
 
   help: [
