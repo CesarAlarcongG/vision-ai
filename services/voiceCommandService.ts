@@ -5,7 +5,7 @@ export type VoiceCommand =
   | "deactivate"
   | "camera"
   | "settings"
-  | "history"
+  | "results" // Cambiado de 'history' a 'results' para coincidir con la navegación
   | "home"
   | "back"
   | "help"
@@ -63,7 +63,7 @@ const COMMAND_ALIASES: CommandAliases = {
     "ir a ajustes",
   ],
 
-  history: [
+  results: [
     "historial",
     "abrir historial",
     "abre el historial",
@@ -81,7 +81,8 @@ const COMMAND_ALIASES: CommandAliases = {
     "menu principal",
   ],
 
-  back: [ // No se incluyen "volver" o "regresar" solos para evitar conflictos con comandos como "volver a abrir la cámara".
+  back: [
+    // No se incluyen "volver" o "regresar" solos para evitar conflictos con comandos como "volver a abrir la cámara".
   ],
 
   help: [
@@ -100,7 +101,7 @@ const COMMAND_ORDER: Exclude<VoiceCommand, "unknown">[] = [
   "deactivate",
   "activate",
   "settings",
-  "history",
+  "results", // Cambiado de 'history' a 'results' para mantener el orden de prioridad
   "camera",
   "home",
   "back",

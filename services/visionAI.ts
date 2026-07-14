@@ -1,10 +1,7 @@
-const API_KEY =
-  process.env.EXPO_PUBLIC_GEMINI_API_KEY;
+const API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
 
 if (!API_KEY) {
-  throw new Error(
-    "Falta configurar EXPO_PUBLIC_GEMINI_API_KEY"
-  );
+  throw new Error("Falta configurar EXPO_PUBLIC_GEMINI_API_KEY");
 }
 
 export async function describeImage(base64Image: string) {
@@ -39,7 +36,7 @@ export async function describeImage(base64Image: string) {
           },
         ],
       }),
-    }
+    },
   );
 
   const data = await response.json();

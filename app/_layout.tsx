@@ -5,18 +5,25 @@ import { VoiceAssistantProvider } from "@/contexts/VoiceAssistantContext";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+
 export default function RootLayout() {
   return (
-    <AccessibilityProvider>
-      <VoiceAssistantProvider>
-        <Stack
-          screenOptions={{
-            headerShown: false,
-          }}
-        />
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <AccessibilityProvider>
+        <VoiceAssistantProvider>
+          <StatusBar style="light" />
 
-        <StatusBar style="light" />
-      </VoiceAssistantProvider>
-    </AccessibilityProvider>
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: {
+                backgroundColor: "#050505",
+              },
+            }}
+          />
+        </VoiceAssistantProvider>
+      </AccessibilityProvider>
+    </GestureHandlerRootView>
   );
 }

@@ -14,6 +14,8 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect } from "react";
 import { Image, StyleSheet, View } from "react-native";
 
+import { saveAnalysis } from "@/services/historyStorage";
+
 export default function ProcessingScreen() {
   const router = useRouter();
 
@@ -34,6 +36,8 @@ export default function ProcessingScreen() {
         });
 
         const description = await describeImage(base64);
+
+        await saveAnalysis(description, safeImageUri);
 
         await successHaptic();
 
