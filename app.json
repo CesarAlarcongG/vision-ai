@@ -9,7 +9,11 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSSpeechRecognitionUsageDescription": "Permitir que Visión IA reconozca comandos de voz.",
+        "NSMicrophoneUsageDescription": "Permitir que Visión IA utilice el micrófono."
+      }
     },
     "android": {
       "permissions": [
@@ -57,6 +61,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "ad627dad-e190-44ef-9117-ae37a6e0e4a3"
+      }
     }
   }
 }
